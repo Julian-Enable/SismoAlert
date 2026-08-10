@@ -34,5 +34,8 @@ export const config = {
   VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY || '',
   CRON_SECRET: env.CRON_SECRET || '',
   TEST_ALERT: (env.TEST_ALERT || '1') === '1',
-  SGC_API_URL: env.SGC_API_URL || ''
+  SGC_API_URL: env.SGC_API_URL || '',
+  RESEND_MIN_MAG: num(env.RESEND_MIN_MAG, 6.5),
+  RESEND_TIMES: num(env.RESEND_TIMES, 3),
+  RESEND_INTERVAL_MS: num(env.RESEND_INTERVAL_MS, 65000)
 };

@@ -12,21 +12,22 @@ function init() {
   initialized = true;
 }
 
-function buildNotification(e) {
+function buildNotification(e, repeat = 0) {
   const place = e.place || 'Colombia';
   const title = e.upgraded
     ? `SISMO ACTUALIZADO M${e.mag} - ${place}`
     : `SISMO M${e.mag} - ${place}`;
+  const prefix = repeat > 0 ? `REPITE ${repeat}: ` : '';
   const body = `MAGNITUD ${e.mag} en ${place}. Fuente: ${e.source} | Prof. ${e.depth ?? 'n/d'} km | ${new Date(e.time).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}. Agarrate ya.`;
-  return { title, body, tag: e.id, url: e.url || '/' };
+  return { title: prefix + title, body, tag: `${e.id}#r${repeat}`, data: { repeat, url: e.url || '/' } };
 }
 
-export async function broadcast(event, subs) {
+export async function broadcast(event, subs, { repeat = 0 } = {}) {
   const cfg = getConfig();
   if (!cfg.VAPID_PUBLIC_KEY || !cfg.VAPID_PRIVATE_KEY) return [];
   init();
   if (!subs.length) return [];
-  const payload = JSON.stringify(buildNotification(event));
+  const payload = JSON.stringify(buildNotification(event, repeat));
   const results = await Promise.allSettled(
     subs.map((sub) =>
       webpush.sendNotification(sub, payload, { urgency: 'high', TTL: 60 })

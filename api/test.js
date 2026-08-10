@@ -18,10 +18,14 @@ export default async function handler(req, res) {
 
   const state = await getState();
   const { next, event } = markTestEvent(state, { mag, place });
+  const resend = event.mag >= cfg.RESEND_MIN_MAG;
+  if (resend) {
+    next.pending = [...(next.pending || []), { id: event.id, sends: cfg.RESEND_TIMES - 1, n: 1, nextAt: Date.now() + cfg.RESEND_INTERVAL_MS }];
+  }
   const stale = await broadcast(event, next.subs);
   if (stale.length) {
     next.subs = next.subs.filter((s) => !stale.includes(s.endpoint));
   }
   await saveState(next);
-  res.status(200).json({ ok: true, sent: next.subs.length, event });
+  res.status(200).json({ ok: true, sent: next.subs.length, resend, event });
 }

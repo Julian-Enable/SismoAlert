@@ -32,6 +32,7 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
   const alerts = [];
   const now = Date.now();
   const seenIds = new Set();
+  const repeats = [];
 
   for (const e of all) {
     if (!qualifies(e, cfg)) continue;
@@ -49,10 +50,39 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
       events.unshift(event);
       if (events.length > 200) events.length = 200;
     }
-    if (fresh) alerts.push({ ...event, alertTime: now });
+    if (fresh) {
+      alerts.push({ ...event, alertTime: now });
+      if (e.mag >= cfg.RESEND_MIN_MAG) {
+        repeats.push({ id: e.id, sends: cfg.RESEND_TIMES - 1, n: 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
+      }
+    }
   }
 
-  return { next: { seen, events, subs: state.subs }, alerts };
+  const pending = new Map((state.pending || []).map((p) => [p.id, p]));
+  for (const r of repeats) pending.set(r.id, r);
+
+  return {
+    next: { seen, events, subs: state.subs, pending: Array.from(pending.values()) },
+    alerts
+  };
+}
+
+export function dueRepeats(state, cfg) {
+  const now = Date.now();
+  const due = [];
+  const pending = [];
+  for (const p of state.pending || []) {
+    if (p.sends > 0) {
+      if (now >= p.nextAt) {
+        const ev = (state.events || []).find((e) => e.id === p.id);
+        if (ev) due.push({ event: ev, repeat: p.n });
+        pending.push({ ...p, sends: p.sends - 1, n: (p.n || 1) + 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
+      } else {
+        pending.push(p);
+      }
+    }
+  }
+  return { due, pending };
 }
 
 export function markTestEvent(state, { mag = 5.0, place = 'Bogota (SIMULACRO)' } = {}) {

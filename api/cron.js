@@ -1,4 +1,4 @@
-import { getConfig, runTick } from './core.js';
+import { getConfig, runTick, dueRepeats } from './core.js';
 import { getState, saveState } from './store.js';
 import { broadcast } from './push.js';
 
@@ -12,17 +12,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const state = await getState();
+    let state = await getState();
     const { next, alerts } = await runTick(state, cfg);
     let stale = [];
     for (const alert of alerts) {
       stale = stale.concat(await broadcast(alert, next.subs));
     }
+    const { due, pending } = dueRepeats(next, cfg);
+    next.pending = pending;
+    for (const r of due) {
+      stale = stale.concat(await broadcast({ ...r.event }, next.subs, { repeat: r.repeat }));
+    }
     if (stale.length) {
       next.subs = next.subs.filter((s) => !stale.includes(s.endpoint));
     }
     await saveState(next);
-    res.status(200).json({ ok: true, alerts: alerts.length, subs: next.subs.length });
+    res.status(200).json({ ok: true, alerts: alerts.length, repeats: due.length, pending: pending.length, subs: next.subs.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
