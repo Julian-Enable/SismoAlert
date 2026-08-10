@@ -32,19 +32,31 @@ async function kvSet(key, value) {
 
 export async function tryAcquireTickLock(ttlSec = 55) {
   if (!IS_REDIS) return true;
-  const r = await fetch(`${REST_URL}/pipeline`, {
-    method: 'POST',
-    headers: { ...auth(), 'Content-Type': 'application/json' },
-    body: JSON.stringify([['SET', 'lock_tick', Date.now().toString(), 'NX', 'EX', String(ttlSec)]])
-  });
-  const text = await r.text();
-  if (!r.ok) throw new Error('KV LOCK ' + r.status + ' ' + text.slice(0, 200));
-  try {
-    const d = JSON.parse(text);
-    return Array.isArray(d) && d[0] === 'OK';
-  } catch {
-    throw new Error('KV LOCK response ' + text.slice(0, 200));
+  const mine = Date.now().toString();
+  const authH = auth();
+  const pipeline = async (cmds) => {
+    const r = await fetch(`${REST_URL}/pipeline`, { method: 'POST', headers: { ...authH, 'Content-Type': 'application/json' }, body: JSON.stringify(cmds) });
+    if (!r.ok) throw new Error('KV LOCK ' + r.status + ' ' + (await r.text()).slice(0, 200));
+    return JSON.parse(await r.text());
+  };
+  const trySet = async () => {
+    const d = await pipeline([['SET', 'lock_tick', mine, 'NX', 'EX', String(ttlSec)]]);
+    return d && d[0] === 'OK';
+  };
+  if (await trySet()) return true;
+  const g = await fetch(`${REST_URL}/get/lock_tick`, { headers: authH });
+  const gd = await g.json();
+  const heldSince = typeof gd?.result === 'string' ? Number(gd.result) : NaN;
+  if (Number.isFinite(heldSince) && heldSince > 0 && Date.now() - heldSince > 45000) {
+    await pipeline([['DEL', 'lock_tick']]);
+    return trySet();
   }
+  return false;
+}
+
+export async function forceReleaseTickLock() {
+  if (!IS_REDIS) return;
+  await fetch(`${REST_URL}/del/lock_tick`, { headers: auth() });
 }
 
 function safeParse(v, fallback) {

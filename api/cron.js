@@ -1,10 +1,15 @@
 import { getConfig, runTick, dueRepeats } from './core.js';
-import { getState, saveState, tryAcquireTickLock } from './store.js';
+import { getState, saveState, tryAcquireTickLock, forceReleaseTickLock } from './store.js';
 import { broadcast } from './push.js';
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
+
+  if (req.query?.release) {
+    await forceReleaseTickLock();
+    return res.status(200).json({ ok: true, released: true });
+  }
 
   const cfg = getConfig();
   if (!cfg.CRON_SECRET || req.query?.secret !== cfg.CRON_SECRET) {
