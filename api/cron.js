@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
 
-  if (req.query?.release) {
+  if (req.query?.release !== undefined) {
     await forceReleaseTickLock();
     return res.status(200).json({ ok: true, released: true });
   }
