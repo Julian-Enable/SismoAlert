@@ -1,5 +1,23 @@
 import { config } from '../src/config.js';
 import { fetchUsgs, fetchEmsc, fetchSgc } from '../src/feeds.js';
+import colombia from '../src/colombia.js';
+
+const COLOMBIA_RINGS = colombia.features[0].geometry.coordinates;
+const CARIBBEAN = { minLat: 11.0, maxLat: 14.0, minLon: -82.4, maxLon: -71.5 };
+const PACIFIC = { minLat: 1.3, maxLat: 8.0, minLon: -82.5, maxLon: -75.5 };
+
+function pointInRings(lon, lat) {
+  for (const ring of COLOMBIA_RINGS) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1];
+      const xj = ring[j][0], yj = ring[j][1];
+      if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    if (inside) return true;
+  }
+  return false;
+}
 
 export function getConfig() {
   return config;
@@ -19,7 +37,13 @@ export async function fetchAllFeeds(includeSgc = false) {
 }
 
 export function inRegion(e, cfg) {
-  return e.lat >= cfg.MIN_LAT && e.lat <= cfg.MAX_LAT && e.lon >= cfg.MIN_LON && e.lon <= cfg.MAX_LON;
+  if (e.mag !== null && e.mag !== undefined && e.mag >= 6.0) {
+    return e.lat >= cfg.MIN_LAT && e.lat <= cfg.MAX_LAT && e.lon >= cfg.MIN_LON && e.lon <= cfg.MAX_LON;
+  }
+  if (pointInRings(e.lon, e.lat)) return true;
+  if (e.lat >= CARIBBEAN.minLat && e.lat <= CARIBBEAN.maxLat && e.lon >= CARIBBEAN.minLon && e.lon <= CARIBBEAN.maxLon) return true;
+  if (e.lat >= PACIFIC.minLat && e.lat <= PACIFIC.maxLat && e.lon >= PACIFIC.minLon && e.lon <= PACIFIC.maxLon) return true;
+  return false;
 }
 
 export function qualifies(e, cfg) {
