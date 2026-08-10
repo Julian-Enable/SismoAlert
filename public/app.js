@@ -2,11 +2,25 @@ const $ = (s) => document.querySelector(s);
 const dot = $('#dot');
 const statusEl = $('#status');
 const btn = $('#btn');
-const hint = $('#hint');
+const overlay = $('#overlay');
+const ovTitle = $('#ovTitle');
+const ovText = $('#ovText');
+const ovBtn = $('#ovBtn');
+const ovSkip = $('#ovSkip');
+const ovSteps = $('#ovSteps');
+const ovHint = $('#ovHint');
+const iosHelpCard = $('#iosHelpCard');
 
 let reg = null;
 let sub = null;
 let vapidKey = null;
+let deferredPrompt = null;
+
+const isStandalone =
+  window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isAndroid = /android/i.test(navigator.userAgent);
+const supportsPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 function urlBase64ToUint8Array(base64) {
   const pad = base64.replace(/=+$/, '');
@@ -29,6 +43,21 @@ function updateUI() {
   } else {
     setStatus('Sin alertas activas.');
   }
+}
+
+function showOverlay({ title, text, btnText, btnAction, steps = false, hint = '' }) {
+  ovTitle.textContent = title;
+  ovText.textContent = text;
+  ovBtn.textContent = btnText;
+  ovBtn.onclick = btnAction || (() => {});
+  ovSteps.classList.toggle('hidden', !steps);
+  ovHint.textContent = hint;
+  overlay.classList.remove('hidden');
+}
+
+function hideOverlay() {
+  overlay.classList.add('hidden');
+  try { localStorage.setItem('sa_skip_install', '1'); } catch {}
 }
 
 async function loadEvents() {
@@ -57,47 +86,117 @@ async function loadEvents() {
   } catch {}
 }
 
-async function enable() {
-  setStatus('Pidiendo permiso...');
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') {
-    setStatus('Permiso denegado. Permite las notificaciones en los ajustes del navegador.');
+function iosShare() {
+  if (navigator.share) {
+    navigator
+      .share({ title: 'SismoAlert Colombia', url: location.href })
+      .catch(() => {});
+    ovHint.textContent = 'En el panel que se abrio elige "Agregar a pantalla de inicio".';
+  } else {
+    ovSteps.classList.remove('hidden');
+  }
+}
+
+function handleInstallFlow() {
+  if (isStandalone) return;
+
+  if (isIOS) {
+    iosHelpCard.classList.remove('hidden');
+    const skipped = (() => { try { return localStorage.getItem('sa_skip_install') === '1'; } catch { return false; } })();
+    if (!skipped) {
+      showOverlay({
+        title: 'Instala la app',
+        text: 'En iPhone, las alertas solo llegan si la app esta en la pantalla de inicio. Toca el boton y elige "Agregar a pantalla de inicio".',
+        btnText: 'Abrir menu Compartir',
+        btnAction: iosShare
+      });
+    }
     return;
   }
-  try {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey)
+
+  if (isAndroid && deferredPrompt) {
+    showOverlay({
+      title: 'Instala la app',
+      text: 'Instala SismoAlert para recibir las alertas como una app normal.',
+      btnText: 'Instalar aplicacion',
+      btnAction: async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        hideOverlay();
+      }
     });
-  } catch (err) {
-    if (err.name === 'NotSupportedError') {
-      setStatus('Sin soporte en este navegador. En iPhone: abre en Safari, instala la app y pulsa de nuevo.');
+  }
+}
+
+async function enable() {
+  if (isIOS && !isStandalone) {
+    iosShare();
+    return;
+  }
+  setStatus('Pidiendo permiso...');
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      setStatus('Permiso denegado. Permite las notificaciones en los ajustes del navegador.');
       return;
     }
-    throw err;
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
+      });
+    } catch (err) {
+      if (err.name === 'NotSupportedError') {
+        setStatus('Sin soporte de push en este navegador. En iPhone: instala la app y pulsa de nuevo.');
+        return;
+      }
+      if (err.name === 'InvalidStateError' || err.name === 'AbortError') {
+        sub = await reg.pushManager.getSubscription();
+        if (!sub) throw err;
+      } else {
+        throw err;
+      }
+    }
+    const r = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+    if (!r.ok) {
+      setStatus('No se pudo guardar la suscripcion. Reintenta en un momento.');
+      return;
+    }
+    updateUI();
+  } catch (err) {
+    setStatus('No se pudo activar las alertas: ' + (err && err.message ? err.message : 'error desconocido'));
   }
-  const r = await fetch('/api/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subscription: sub.toJSON() })
-  });
-  if (r.ok) updateUI();
 }
 
 async function disable() {
-  if (sub) {
-    await fetch('/api/subscribe', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: sub.endpoint })
-    });
-    await sub.unsubscribe();
-  }
+  try {
+    if (sub) {
+      await fetch('/api/subscribe', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint })
+      });
+      await sub.unsubscribe();
+    }
+  } catch {}
   sub = null;
   updateUI();
 }
 
 btn.addEventListener('click', () => (sub ? disable() : enable()));
+ovSkip.addEventListener('click', hideOverlay);
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  handleInstallFlow();
+});
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadEvents();
@@ -108,12 +207,11 @@ document.addEventListener('visibilitychange', () => {
     const cfg = await (await fetch('/api/config')).json();
     vapidKey = cfg.vapidPublicKey;
 
-    if (!('serviceWorker' in navigator)) {
+    if (!supportsPush) {
       setStatus('Tu navegador no soporta notificaciones push.');
-      return;
-    }
-    if (!('PushManager' in window) || !('Notification' in window)) {
-      setStatus('Tu navegador no soporta notificaciones push.');
+      btn.disabled = true;
+      if (isIOS && !isStandalone) handleInstallFlow();
+      loadEvents();
       return;
     }
 
@@ -129,8 +227,9 @@ document.addEventListener('visibilitychange', () => {
       setStatus('Notificaciones bloqueadas en el navegador. Habilitalas en los ajustes.');
     }
 
+    handleInstallFlow();
     loadEvents();
   } catch (err) {
-    setStatus('Error al preparar las alertas: ' + (err && err.message));
+    setStatus('Error al preparar las alertas: ' + (err && err.message ? err.message : 'error desconocido'));
   }
 })();

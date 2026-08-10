@@ -12,6 +12,7 @@
     :root {
       --bg: #0b1220; --card: #131c2e; --line: #22304c;
       --text: #e8eefd; --muted: #8fa3c8; --accent: #ffb020; --danger: #ff4d4d;
+      --green: #2ecc71;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -31,7 +32,7 @@
     }
     .status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
     .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
-    .dot.on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+    .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
     .btn {
       width: 100%; border: none; border-radius: 12px; padding: 14px;
       font-size: 16px; font-weight: 700; cursor: pointer; color: #0b1220;
@@ -39,6 +40,7 @@
     }
     .btn:disabled { opacity: .5; cursor: default; }
     .btn.off { background: var(--card); color: var(--danger); border: 1px solid var(--danger); }
+    .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--line); margin-top: 10px; }
     .hint { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 12px; }
     .hint b { color: var(--text); }
     .ev { padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -54,7 +56,7 @@
     .tag.test { background: rgba(143,163,200,.15); color: var(--muted); }
     h2 { font-size: 16px; margin-bottom: 4px; }
     .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
-    .ios-steps { counter-reset: step; margin-top: 12px; }
+    .ios-steps { counter-reset: step; margin-top: 12px; text-align: left; }
     .ios-steps li { list-style: none; counter-increment: step; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
     .ios-steps li::before {
       content: counter(step); width: 20px; height: 20px; border-radius: 50%;
@@ -63,9 +65,39 @@
       margin-right: 8px;
     }
     .mini { font-size: 12px; color: var(--muted); text-align: center; margin-top: 20px; }
+
+    .overlay {
+      position: fixed; inset: 0; z-index: 50; display: flex;
+      align-items: center; justify-content: center; padding: 20px;
+      background: rgba(5, 10, 20, .92); backdrop-filter: blur(6px);
+    }
+    .overlay.hidden { display: none; }
+    .overlay .card { max-width: 420px; width: 100%; text-align: center; }
+    .overlay .icon { width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 12px; display: block; }
+    .overlay h2 { font-size: 19px; margin-bottom: 8px; }
+    .overlay p { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+    .overlay .btn { margin-top: 16px; }
+    .subtitle { color: var(--muted); font-size: 13px; line-height: 1.5; }
   </style>
 </head>
 <body>
+  <div class="overlay hidden" id="overlay">
+    <div class="card">
+      <img class="icon" src="/icon-192.png" alt="SismoAlert">
+      <h2 id="ovTitle">Instala la app</h2>
+      <p id="ovText">Las alertas solo llegan si la app esta instalada.</p>
+      <button class="btn" id="ovBtn"></button>
+      <button class="btn ghost" id="ovSkip">Continuar sin instalar</button>
+      <ol class="ios-steps hidden" id="ovSteps">
+        <li>Abre esta pagina en Safari (no Chrome)</li>
+        <li>Toca el boton <b>Compartir</b> (cuadro con flecha)</li>
+        <li>Elige <b>Agregar a pantalla de inicio</b></li>
+        <li>Vuelve a entrar desde el icono en el inicio</li>
+      </ol>
+      <p class="hint" id="ovHint"></p>
+    </div>
+  </div>
+
   <header>
     <img src="/icon-192.png" alt="SismoAlert">
     <div>
@@ -86,14 +118,14 @@
       <div id="events"><p class="hint">Cargando...</p></div>
     </div>
 
-    <div class="card">
-      <h2>Como instalarla en tu iPhone (gratis)</h2>
-      <p class="sub">Para que las alertas lleguen como app normal:</p>
+    <div class="card hidden" id="iosHelpCard">
+      <h2>Recibir alertas en tu iPhone</h2>
+      <p class="sub">Safari solo envia notificaciones push a apps instaladas:</p>
       <ol class="ios-steps">
         <li>Abre esta pagina en Safari (no Chrome)</li>
-        <li>Toca el boton Compartir <b>...</b> o <b>(cuadro con flecha)</b></li>
+        <li>Toca el boton Compartir <b>(cuadro con flecha)</b></li>
         <li>Elige <b>Agregar a pantalla de inicio</b></li>
-        <li>Pulsa <b>Activar alertas</b> dentro de la app instalada</li>
+        <li>Abre la app desde el inicio y pulsa <b>Activar alertas</b></li>
       </ol>
       <p class="hint">En Android: menu <b>Instalar aplicacion</b> en Chrome y luego Activar alertas.</p>
     </div>
