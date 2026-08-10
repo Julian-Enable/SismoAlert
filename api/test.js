@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   const place = req.query?.place || 'Bogota (SIMULACRO)';
 
   const state = await getState();
-  const { next, event } = markTestEvent(state, cfg, { mag, place });
+  const { next, event } = markTestEvent(state, { mag, place });
   const stale = await broadcast(event, next.subs);
   if (stale.length) {
     next.subs = next.subs.filter((s) => !stale.includes(s.endpoint));
