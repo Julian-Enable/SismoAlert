@@ -178,8 +178,7 @@ function handleInstallFlow() {
       showOverlay({
         title: 'Instala la app para recibir alertas',
         text: 'Es gratis y toma 20 segundos. En iPhone, las alertas push solo funcionan con la app instalada.',
-        btnText: 'Continuar sin instalar',
-        btnAction: hideOverlay,
+        btnText: '',
         hint: ''
       });
       iosVisual.classList.remove('hidden');
