@@ -5,6 +5,8 @@ const norm = (id, source, f) => {
   const p = f.properties || {};
   const [lon, lat, depth] = (f.geometry && f.geometry.coordinates) || [];
   if (lat === undefined || lon === undefined) return null;
+  const flynn = (s) =>
+    s ? s.toLowerCase().replace(/(^|\s)\S/g, (m) => m.toUpperCase()) : '';
   return {
     id,
     source,
@@ -13,7 +15,7 @@ const norm = (id, source, f) => {
     lat,
     lon,
     depth: depth ?? null,
-    place: (p.place || `${source} reportado`).replace(/^\s*M\d[\d.]*\s+/, ''),
+    place: (p.place || flynn(p.flynn_region) || `${source} reportado`).replace(/^\s*M\d[\d.]*\s+/, ''),
     url: p.url || p.sources?.indexOf('us') >= 0 ? p.url || '' : p.url || ''
   };
 };

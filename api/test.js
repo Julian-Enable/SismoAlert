@@ -29,6 +29,12 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, removed: events.length - keepEvents.length });
   }
 
+  if (req.query?.action === 'clear_events') {
+    const state = await getState();
+    await saveState({ ...state, events: [] });
+    return res.status(200).json({ ok: true, cleared: true });
+  }
+
   const mag = req.query?.mag ? Number(req.query.mag) : 5.0;
   const place = req.query?.place || 'Bogota (SIMULACRO)';
 
