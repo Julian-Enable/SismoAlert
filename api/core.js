@@ -76,7 +76,8 @@ export function dueRepeats(state, cfg) {
       if (now >= p.nextAt) {
         const ev = (state.events || []).find((e) => e.id === p.id);
         if (ev) due.push({ event: ev, repeat: p.n });
-        pending.push({ ...p, sends: p.sends - 1, n: (p.n || 1) + 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
+        const left = p.sends - 1;
+        if (left > 0) pending.push({ ...p, sends: left, n: (p.n || 1) + 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
       } else {
         pending.push(p);
       }
