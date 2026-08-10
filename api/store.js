@@ -32,14 +32,19 @@ async function kvSet(key, value) {
 
 export async function tryAcquireTickLock(ttlSec = 55) {
   if (!IS_REDIS) return true;
-  const r = await fetch(`${REST_URL}/set/lock_tick?NX=1&EX=${ttlSec}`, {
+  const r = await fetch(`${REST_URL}/pipeline`, {
     method: 'POST',
-    headers: { ...auth(), 'Content-Type': 'text/plain' },
-    body: Date.now().toString()
+    headers: { ...auth(), 'Content-Type': 'application/json' },
+    body: JSON.stringify([['SET', 'lock_tick', Date.now().toString(), 'NX', 'EX', String(ttlSec)]])
   });
-  if (!r.ok) throw new Error('KV LOCK ' + r.status);
-  const d = await r.json();
-  return d?.result === 'OK';
+  const text = await r.text();
+  if (!r.ok) throw new Error('KV LOCK ' + r.status + ' ' + text.slice(0, 200));
+  try {
+    const d = JSON.parse(text);
+    return Array.isArray(d) && d[0] === 'OK';
+  } catch {
+    throw new Error('KV LOCK response ' + text.slice(0, 200));
+  }
 }
 
 function safeParse(v, fallback) {
