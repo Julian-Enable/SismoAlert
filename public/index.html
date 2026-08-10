@@ -78,6 +78,32 @@
     .overlay p { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
     .overlay .btn { margin-top: 16px; }
     .subtitle { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    .safari-bar {
+      display: flex; align-items: center; gap: 8px; margin: 14px 0 4px;
+      background: #0d1526; border: 1px solid var(--line); border-radius: 12px;
+      padding: 10px 12px; max-width: 360px; margin-left: auto; margin-right: auto;
+    }
+    .sb-btn { color: var(--muted); font-size: 15px; font-weight: 700; min-width: 16px; text-align: center; }
+    .sb-url {
+      flex: 1; background: var(--bg); border-radius: 8px; padding: 6px 10px;
+      font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; border: 1px solid var(--line);
+    }
+    .sb-share {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,176,32,.18); border: 2px solid var(--accent);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    .sb-share svg { width: 18px; height: 18px; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,176,32,.45); } 50% { box-shadow: 0 0 0 9px rgba(255,176,32,0); } }
+    .sb-arrow {
+      display: flex; justify-content: center; margin: 2px 0 10px;
+      color: var(--accent); font-size: 20px; font-weight: 800;
+    }
+    .safari-tip { color: var(--muted); font-size: 12px; margin-top: 10px; }
+    .safari-tip b { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -86,14 +112,25 @@
       <img class="icon" src="/icon-192.png" alt="SismoAlert">
       <h2 id="ovTitle">Instala la app</h2>
       <p id="ovText">Las alertas solo llegan si la app esta instalada.</p>
+      <div class="hidden" id="iosVisual">
+        <div class="safari-bar">
+          <div class="sb-btn">&#9664;</div>
+          <div class="sb-btn">&#9654;</div>
+          <div class="sb-url">sismo-alert-pied.vercel.app</div>
+          <div class="sb-share">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg>
+          </div>
+        </div>
+        <div class="sb-arrow">&#8595; toca aqui</div>
+        <ol class="ios-steps">
+          <li>Toca el boton Compartir en la barra de Safari <b>(cuadro con flecha)</b></li>
+          <li>En el menu busca <b>Agregar a pantalla de inicio</b></li>
+          <li>Toca <b>Agregar</b> y entra desde el icono en el inicio</li>
+        </ol>
+        <p class="safari-tip">Si no lo ves: asegurate de abrir esta pagina en <b>Safari</b> (no en Chrome ni en la app de Instagram/Facebook).</p>
+      </div>
       <button class="btn" id="ovBtn"></button>
       <button class="btn ghost" id="ovSkip">Continuar sin instalar</button>
-      <ol class="ios-steps hidden" id="ovSteps">
-        <li>Abre esta pagina en Safari (no Chrome)</li>
-        <li>Toca el boton <b>Compartir</b> (cuadro con flecha)</li>
-        <li>Elige <b>Agregar a pantalla de inicio</b></li>
-        <li>Vuelve a entrar desde el icono en el inicio</li>
-      </ol>
       <p class="hint" id="ovHint"></p>
     </div>
   </div>

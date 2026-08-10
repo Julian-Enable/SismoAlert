@@ -7,8 +7,8 @@ const ovTitle = $('#ovTitle');
 const ovText = $('#ovText');
 const ovBtn = $('#ovBtn');
 const ovSkip = $('#ovSkip');
-const ovSteps = $('#ovSteps');
 const ovHint = $('#ovHint');
+const iosVisual = $('#iosVisual');
 const iosHelpCard = $('#iosHelpCard');
 
 let reg = null;
@@ -45,12 +45,12 @@ function updateUI() {
   }
 }
 
-function showOverlay({ title, text, btnText, btnAction, steps = false, hint = '' }) {
+function showOverlay({ title, text, btnText, btnAction, hint = '' }) {
   ovTitle.textContent = title;
   ovText.textContent = text;
   ovBtn.textContent = btnText;
   ovBtn.onclick = btnAction || (() => {});
-  ovSteps.classList.toggle('hidden', !steps);
+  ovBtn.classList.toggle('hidden', !btnText);
   ovHint.textContent = hint;
   overlay.classList.remove('hidden');
 }
@@ -93,7 +93,7 @@ function iosShare() {
       .catch(() => {});
     ovHint.textContent = 'En el panel que se abrio elige "Agregar a pantalla de inicio".';
   } else {
-    ovSteps.classList.remove('hidden');
+    iosVisual.classList.remove('hidden');
   }
 }
 
@@ -105,11 +105,13 @@ function handleInstallFlow() {
     const skipped = (() => { try { return localStorage.getItem('sa_skip_install') === '1'; } catch { return false; } })();
     if (!skipped) {
       showOverlay({
-        title: 'Instala la app',
-        text: 'En iPhone, las alertas solo llegan si la app esta en la pantalla de inicio. Toca el boton y elige "Agregar a pantalla de inicio".',
-        btnText: 'Abrir menu Compartir',
-        btnAction: iosShare
+        title: 'Instala la app para recibir alertas',
+        text: '',
+        btnText: 'Continuar sin instalar',
+        btnAction: hideOverlay,
+        hint: 'Es gratis y toma 20 segundos. En iPhone, las alertas push solo funcionan con la app instalada.'
       });
+      iosVisual.classList.remove('hidden');
     }
     return;
   }
@@ -132,7 +134,12 @@ function handleInstallFlow() {
 
 async function enable() {
   if (isIOS && !isStandalone) {
-    iosShare();
+    if (navigator.share) {
+      navigator.share({ title: 'SismoAlert Colombia', url: location.href }).catch(() => {});
+      setStatus('En el panel elige "Agregar a pantalla de inicio" y entra desde el icono.');
+    } else {
+      setStatus('Instala la app siguiendo los pasos para poder activar las alertas.');
+    }
     return;
   }
   setStatus('Pidiendo permiso...');
