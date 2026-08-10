@@ -7,7 +7,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node src/server.js",
+    "start:local": "node src/server.js",
     "test-local": "node scripts/test-local.js"
   },
   "dependencies": {
