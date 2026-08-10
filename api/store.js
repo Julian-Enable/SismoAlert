@@ -30,6 +30,18 @@ async function kvSet(key, value) {
   if (!r.ok) throw new Error('KV SET ' + r.status);
 }
 
+export async function tryAcquireTickLock(ttlSec = 55) {
+  if (!IS_REDIS) return true;
+  const r = await fetch(`${REST_URL}/set/lock_tick?NX=1&EX=${ttlSec}`, {
+    method: 'POST',
+    headers: { ...auth(), 'Content-Type': 'text/plain' },
+    body: Date.now().toString()
+  });
+  if (!r.ok) throw new Error('KV LOCK ' + r.status);
+  const d = await r.json();
+  return d?.result === 'OK';
+}
+
 function safeParse(v, fallback) {
   if (v === null || v === undefined || v === '') return fallback;
   if (typeof v !== 'string') return fallback;

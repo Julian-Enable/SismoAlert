@@ -35,6 +35,12 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, cleared: true });
   }
 
+  if (req.query?.action === 'reset') {
+    const state = await getState();
+    await saveState({ ...state, seen: {}, events: [], pending: [] });
+    return res.status(200).json({ ok: true, reset: true });
+  }
+
   const mag = req.query?.mag ? Number(req.query.mag) : 5.0;
   const place = req.query?.place || 'Bogota (SIMULACRO)';
 

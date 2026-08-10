@@ -1,5 +1,5 @@
 import { getConfig, runTick, dueRepeats } from './core.js';
-import { getState, saveState } from './store.js';
+import { getState, saveState, tryAcquireTickLock } from './store.js';
 import { broadcast } from './push.js';
 
 export default async function handler(req, res) {
@@ -12,6 +12,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!(await tryAcquireTickLock())) {
+      return res.status(200).json({ ok: true, skipped: 'lock' });
+    }
     let state = await getState();
     const { next, alerts, trace } = await runTick(state, cfg);
     let stale = [];
