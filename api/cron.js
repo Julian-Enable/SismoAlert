@@ -18,13 +18,15 @@ export default async function handler(req, res) {
 
   try {
     let lockOk = true;
-    try {
-      lockOk = await tryAcquireTickLock();
-    } catch (err) {
-      lockOk = true;
-    }
-    if (!lockOk) {
-      return res.status(200).json({ ok: true, skipped: 'lock' });
+    if (req.query?.force === undefined) {
+      try {
+        lockOk = await tryAcquireTickLock();
+      } catch (err) {
+        lockOk = true;
+      }
+      if (!lockOk) {
+        return res.status(200).json({ ok: true, skipped: 'lock' });
+      }
     }
     let state = await getState();
     const { next, alerts, trace } = await runTick(state, cfg);
