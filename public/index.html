@@ -3,244 +3,466 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#070b16">
-  <meta name="description" content="Alertas sísmicas de Colombia en tiempo real. Gratis, para todos.">
-  <title>SismoAlert | Alertas sísmicas Colombia</title>
+  <meta name="theme-color" content="#f4f0e8">
+  <meta name="description" content="Alertas s&iacute;smicas de Colombia en tiempo real. Gratis, para todos.">
+  <title>SismoAlert | Alertas s&iacute;smicas Colombia</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <style>
     :root {
-      --bg0: #05080f;
-      --bg1: #0a1222;
-      --card: rgba(18, 27, 48, .62);
-      --card-solid: #111a2e;
-      --line: rgba(148, 163, 255, .14);
-      --line-strong: rgba(148, 163, 255, .30);
-      --text: #eef2ff;
-      --muted: #8fa0c4;
-      --muted-2: #5c6b8f;
-      --live: #22c55e;
-      --m4: #ffd60a;
-      --m5: #ff9f0a;
-      --m6: #ff453a;
-      --glass-hi: rgba(255, 255, 255, .06);
-      --radius: 20px;
+      --paper: #f4f0e8;
+      --paper-2: #e9e1d5;
+      --ink: #152029;
+      --ink-soft: #40515d;
+      --muted: #6f7b82;
+      --card: #fffaf1;
+      --card-2: #f8f1e7;
+      --line: rgba(21, 32, 41, .13);
+      --line-strong: rgba(21, 32, 41, .24);
+      --brand: #dd3f2c;
+      --brand-2: #9f271d;
+      --sea: #0f746c;
+      --live: #0b8f58;
+      --m4: #b98705;
+      --m5: #d36a18;
+      --m6: #c72e22;
+      --shadow: 0 20px 60px rgba(36, 28, 17, .12);
+      --radius: 8px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { -webkit-text-size-adjust: 100%; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
-      background:
-        radial-gradient(900px 480px at 85% -10%, rgba(255, 69, 58, .10), transparent 60%),
-        radial-gradient(700px 420px at -10% 12%, rgba(64, 120, 255, .10), transparent 60%),
-        linear-gradient(180deg, var(--bg1), var(--bg0) 55%);
-      background-attachment: fixed;
-      color: var(--text);
       min-height: 100vh;
-      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        linear-gradient(90deg, rgba(21, 32, 41, .045) 1px, transparent 1px),
+        linear-gradient(rgba(21, 32, 41, .035) 1px, transparent 1px),
+        linear-gradient(135deg, #f7f2e9 0%, #eee5d8 48%, #f7efe5 100%);
+      background-size: 42px 42px, 42px 42px, auto;
+      padding: env(safe-area-inset-top) 18px env(safe-area-inset-bottom);
     }
-    main { max-width: 560px; margin: 0 auto; padding-bottom: 48px; }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(135deg, transparent 0 18px, rgba(221, 63, 44, .045) 18px 19px),
+        linear-gradient(180deg, rgba(255, 250, 241, .72), rgba(255, 250, 241, .18));
+      mask-image: linear-gradient(180deg, #000 0%, transparent 72%);
+      -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 72%);
+    }
 
-    /* ---------- Header ---------- */
+    .shell { position: relative; width: min(1120px, 100%); margin: 0 auto; }
+    main { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(330px, .72fr); gap: 18px; padding-bottom: 44px; }
+
     .top {
-      max-width: 560px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 4px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 0 20px;
     }
-    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .logo {
-      width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-      background: linear-gradient(160deg, #ff6b35, #ff2d55);
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 6px 18px rgba(255, 45, 85, .35);
+      width: 46px;
+      height: 46px;
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      color: #fffaf1;
+      background: #152029;
+      box-shadow: 7px 7px 0 rgba(221, 63, 44, .24);
     }
-    .logo svg { width: 26px; height: 26px; }
-    .brand h1 { font-size: 21px; font-weight: 800; letter-spacing: .02em; line-height: 1.1; }
-    .brand h1 span { color: #ff5c4d; }
-    .brand p { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .logo svg { width: 27px; height: 27px; }
+    .brand h1 { font-size: 24px; font-weight: 900; line-height: 1; letter-spacing: 0; }
+    .brand h1 span { color: var(--brand); }
+    .brand p { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-top: 4px; }
     .live-badge {
-      display: flex; align-items: center; gap: 7px;
-      font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--live);
-      background: rgba(34, 197, 94, .10); border: 1px solid rgba(34, 197, 94, .30);
-      border-radius: 99px; padding: 7px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 13px;
+      border: 1px solid rgba(11, 143, 88, .28);
+      border-radius: 999px;
+      color: var(--live);
+      background: rgba(255, 250, 241, .74);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      white-space: nowrap;
     }
     .live-dot {
-      width: 9px; height: 9px; border-radius: 50%; background: var(--live);
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--live);
+      box-shadow: 0 0 0 5px rgba(11, 143, 88, .13);
       animation: livePulse 1.8s ease-in-out infinite;
     }
-    .live-dot.off { background: var(--muted-2); animation: none; }
+    .live-dot.off { background: #8b969c; box-shadow: 0 0 0 5px rgba(139, 150, 156, .12); animation: none; }
     @keyframes livePulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .40); }
-      50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(11, 143, 88, .15); }
+      50% { transform: scale(.82); box-shadow: 0 0 0 9px rgba(11, 143, 88, 0); }
     }
 
-    /* ---------- Cards ---------- */
     .card {
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: inset 0 1px 0 var(--glass-hi), 0 12px 32px rgba(0, 0, 0, .35);
+      box-shadow: var(--shadow);
     }
-    h2 { font-size: 14px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-    .sub { color: var(--muted-2); font-size: 12px; margin-top: 4px; }
-    .hint { color: var(--muted); font-size: 13px; line-height: 1.55; margin-top: 12px; }
-    .hint b { color: var(--text); }
+    .panel-pad { padding: 22px; }
+    h2 { color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .hint { color: var(--ink-soft); font-size: 13px; line-height: 1.55; margin-top: 12px; }
+    .hint b { color: var(--ink); }
 
-    /* ---------- Hero ---------- */
-    .hero { position: relative; overflow: hidden; text-align: center; }
-    .hero .status-row {
-      display: flex; align-items: center; justify-content: center; gap: 9px;
-      font-size: 14px; font-weight: 700; color: var(--muted); margin-bottom: 16px;
+    .hero {
+      position: relative;
+      min-height: 520px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(21, 32, 41, .96), rgba(31, 45, 52, .92)),
+        var(--ink);
+      color: #fffaf1;
+      display: grid;
+      align-content: space-between;
+      padding: 28px;
     }
-    .hero .status-row .live-dot { width: 10px; height: 10px; }
-    .hero-title { font-size: 24px; font-weight: 900; letter-spacing: -.02em; margin-bottom: 6px; }
-    .hero-title em { font-style: normal; color: #ff5c4d; }
-    .hero-sub { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 22px; }
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 430px;
+      height: 430px;
+      border: 1px solid rgba(255, 250, 241, .12);
+      border-radius: 50%;
+      left: 50%;
+      top: 52%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .hero::after { width: 650px; height: 650px; border-color: rgba(221, 63, 44, .22); }
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      opacity: .16;
+      background:
+        linear-gradient(90deg, #fff 1px, transparent 1px),
+        linear-gradient(#fff 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
+    }
+    .hero-copy,
+    .hero-action,
+    .wave { position: relative; z-index: 1; }
+    .status-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      width: fit-content;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid rgba(255, 250, 241, .16);
+      border-radius: 999px;
+      color: rgba(255, 250, 241, .78);
+      background: rgba(255, 250, 241, .07);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .hero-title {
+      width: min(650px, 100%);
+      margin-top: 30px;
+      font-size: clamp(40px, 7vw, 78px);
+      line-height: .92;
+      font-weight: 950;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+    .hero-title em {
+      display: block;
+      color: #ff735f;
+      font-style: normal;
+    }
+    .hero-sub {
+      width: min(560px, 100%);
+      margin-top: 18px;
+      color: rgba(255, 250, 241, .74);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .hero-action { margin-top: 34px; max-width: 470px; }
 
     .btn {
-      width: 100%; border: none; cursor: pointer; border-radius: 16px;
-      padding: 17px; font-size: 16px; font-weight: 800; letter-spacing: .01em;
-      color: #fff; font-family: inherit;
-      background: linear-gradient(135deg, #ff6b35, #ff2d55);
-      box-shadow: 0 12px 28px rgba(255, 45, 85, .35);
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: transform .12s ease, box-shadow .12s ease, opacity .2s ease;
+      width: 100%;
+      min-height: 54px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      cursor: pointer;
+      padding: 0 18px;
+      color: #fffaf1;
+      background: var(--brand);
+      box-shadow: 0 14px 28px rgba(159, 39, 29, .22);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 900;
+      transition: transform .16s ease, background .16s ease, box-shadow .16s ease, opacity .16s ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .btn:active { transform: scale(.97); }
-    .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
-    .btn svg { width: 19px; height: 19px; }
+    .btn:hover { background: var(--brand-2); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:focus-visible { outline: 3px solid rgba(15, 116, 108, .35); outline-offset: 3px; }
+    .btn:disabled { opacity: .5; cursor: default; box-shadow: none; transform: none; }
+    .btn svg { width: 19px; height: 19px; flex: 0 0 auto; }
     .btn.off {
-      background: var(--card-solid); color: #ff5c4d;
-      border: 1px solid rgba(255, 92, 77, .55); box-shadow: none;
+      background: transparent;
+      color: #ff9b8d;
+      border-color: rgba(255, 155, 141, .52);
+      box-shadow: none;
     }
     .btn.ghost {
-      background: rgba(255, 255, 255, .05); color: var(--text);
-      border: 1px solid var(--line); box-shadow: none; margin-top: 10px;
+      margin-top: 10px;
+      color: var(--ink);
+      background: transparent;
+      border-color: var(--line-strong);
+      box-shadow: none;
     }
-    .wave { margin-top: 6px; opacity: .85; }
-    .wave svg { width: 100%; height: 46px; display: block; }
-    .wave path { stroke: url(#wv); stroke-width: 2.2; fill: none; }
+    .btn.ghost:hover { background: rgba(21, 32, 41, .06); }
+    .hero .hint { color: rgba(255, 250, 241, .66); }
+    .wave { margin-top: 30px; opacity: .95; }
+    .wave svg { width: 100%; height: 74px; display: block; }
+    .wave path { stroke: url(#wv); stroke-width: 2.4; fill: none; vector-effect: non-scaling-stroke; }
 
-    /* ---------- Last event ---------- */
+    .side { display: grid; gap: 18px; align-content: start; }
+    .last-card { padding: 22px; }
+    .last-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
     .last-mag {
-      display: flex; align-items: baseline; gap: 12px; margin-top: 12px;
-      font-size: 54px; font-weight: 900; letter-spacing: -.04em; line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-top: 20px;
+      font-size: clamp(58px, 12vw, 92px);
+      font-weight: 950;
+      letter-spacing: 0;
+      line-height: .86;
       font-variant-numeric: tabular-nums;
     }
-    .last-mag small { font-size: 20px; font-weight: 800; color: var(--muted); margin-right: -4px; }
-    .last-place { font-size: 19px; font-weight: 800; margin-top: 8px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-    .chip {
-      font-size: 11px; font-weight: 800; letter-spacing: .06em; padding: 5px 10px;
-      border-radius: 99px; background: var(--card-solid); color: var(--muted);
-      border: 1px solid var(--line);
-    }
+    .last-mag small { color: var(--muted); font-size: 20px; font-weight: 900; }
+    .last-place { margin-top: 18px; color: var(--ink); font-size: 22px; font-weight: 900; line-height: 1.16; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .chip,
     .tag {
-      display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .06em;
-      padding: 3px 9px; border-radius: 99px; vertical-align: 4px;
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--card-2);
+      color: var(--ink-soft);
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      white-space: nowrap;
     }
-    .tag.updated { background: rgba(255, 214, 10, .14); color: var(--m4); border: 1px solid rgba(255, 214, 10, .4); }
-    .tag.test { background: rgba(143, 160, 196, .14); color: var(--muted); border: 1px solid var(--line-strong); }
+    .tag { min-height: 22px; vertical-align: middle; }
+    .tag.updated { background: rgba(185, 135, 5, .11); color: var(--m4); border-color: rgba(185, 135, 5, .25); }
+    .tag.test { background: rgba(15, 116, 108, .12); color: var(--sea); border-color: rgba(15, 116, 108, .26); }
     .empty {
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-      padding: 26px 0 20px; color: var(--muted-2); text-align: center;
+      min-height: 230px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
     }
-    .empty svg { width: 46px; height: 46px; opacity: .5; }
-    .empty p { font-size: 13px; line-height: 1.5; }
+    .empty svg { width: 52px; height: 52px; margin: 0 auto 14px; opacity: .45; }
+    .empty p { font-size: 13px; line-height: 1.55; }
 
-    /* ---------- Feed ---------- */
-    .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-    .sec-head .sub { margin-top: 0; }
-    #events { margin-top: 6px; }
+    .feed-card { overflow: hidden; }
+    .sec-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sec-head .sub { margin-top: 0; text-align: right; }
+    #events { padding: 4px 20px 8px; }
     .ev {
-      display: grid; grid-template-columns: 4px 1fr auto; gap: 14px;
-      padding: 14px 0; border-bottom: 1px solid var(--line); align-items: center;
+      display: grid;
+      grid-template-columns: 6px minmax(0, 1fr) auto;
+      gap: 13px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
     }
     .ev:last-child { border-bottom: none; }
-    .ev .rail { width: 4px; border-radius: 99px; height: 46px; }
+    .ev .rail { width: 6px; height: 48px; border-radius: 999px; }
     .ev .mag {
-      font-size: 23px; font-weight: 900; letter-spacing: -.03em;
-      font-variant-numeric: tabular-nums; display: inline-block;
+      display: inline-block;
+      min-width: 54px;
+      font-size: 24px;
+      font-weight: 950;
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
     }
-    .ev .place { font-size: 15px; font-weight: 700; }
-    .ev .meta { color: var(--muted-2); font-size: 12px; margin-top: 3px; }
+    .ev .place { color: var(--ink); font-size: 14px; font-weight: 850; line-height: 1.28; }
+    .ev .meta { color: var(--muted); font-size: 12px; margin-top: 5px; }
     .ev .ago {
-      font-size: 11px; font-weight: 700; color: var(--muted-2); text-align: right;
-      white-space: nowrap; font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
     }
 
-    /* ---------- IOS help ---------- */
-    .ios-steps { counter-reset: step; margin-top: 12px; }
+    .ios-steps { counter-reset: step; margin-top: 14px; }
     .ios-steps li {
-      list-style: none; counter-increment: step;
-      color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 9px;
-      display: flex; gap: 10px; align-items: baseline;
+      list-style: none;
+      counter-increment: step;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 10px;
     }
-    .ios-steps li b { color: var(--text); }
+    .ios-steps li b { color: var(--ink); }
     .ios-steps li::before {
-      content: counter(step); flex-shrink: 0;
-      width: 22px; height: 22px; border-radius: 7px;
-      background: rgba(255, 92, 77, .14); border: 1px solid rgba(255, 92, 77, .35);
-      color: #ff7a6b; display: inline-flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 800;
+      content: counter(step);
+      flex: 0 0 auto;
+      width: 23px;
+      height: 23px;
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand);
+      background: rgba(221, 63, 44, .11);
+      border: 1px solid rgba(221, 63, 44, .24);
+      font-size: 11px;
+      font-weight: 900;
     }
     .safari-bar {
-      display: flex; align-items: center; gap: 9px; margin: 16px 0 6px;
-      background: var(--bg1); border: 1px solid var(--line-strong); border-radius: 14px;
-      padding: 10px 12px; max-width: 360px; margin-left: auto; margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 16px auto 8px;
+      max-width: 360px;
+      padding: 9px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--card-2);
     }
-    .sb-btn { color: var(--muted); font-size: 15px; font-weight: 700; min-width: 16px; text-align: center; }
+    .sb-btn { color: var(--muted); font-size: 15px; font-weight: 800; min-width: 16px; text-align: center; }
     .sb-url {
-      flex: 1; background: rgba(5, 8, 15, .8); border-radius: 8px; padding: 6px 10px;
-      font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden;
-      text-overflow: ellipsis; border: 1px solid var(--line);
+      flex: 1;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fffaf1;
+      color: var(--muted);
+      padding: 7px 9px;
+      font-size: 11px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
     .sb-share {
-      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(255, 176, 32, .16); border: 2px solid var(--m5);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius);
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      background: rgba(211, 106, 24, .14);
+      border: 2px solid var(--m5);
       animation: pulse 1.6s ease-in-out infinite;
     }
     .sb-share svg { width: 19px; height: 19px; }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 159, 10, .45); }
-      50% { box-shadow: 0 0 0 10px rgba(255, 159, 10, 0); }
-    }
-    .sb-arrow { display: flex; justify-content: center; margin: 2px 0 8px; color: var(--m5); font-size: 20px; font-weight: 800; }
-    .safari-tip { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 10px; }
+    .sb-arrow { display: flex; justify-content: center; margin: 2px 0 8px; color: var(--m5); font-size: 20px; font-weight: 900; }
+    .safari-tip { color: var(--ink-soft); font-size: 12px; line-height: 1.5; margin-top: 10px; }
     .safari-tip b { color: var(--m5); }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(211, 106, 24, .32); }
+      50% { box-shadow: 0 0 0 10px rgba(211, 106, 24, 0); }
+    }
 
-    /* ---------- Overlay ---------- */
     .overlay {
-      position: fixed; inset: 0; z-index: 50; display: flex;
-      align-items: center; justify-content: center; padding: 20px;
-      background: rgba(5, 8, 15, .93); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(21, 32, 41, .64);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     .overlay.hidden { display: none; }
-    .overlay .card { max-width: 420px; width: 100%; text-align: center; }
+    .overlay .card { width: min(430px, 100%); padding: 24px; text-align: center; }
     .overlay .icon {
-      width: 72px; height: 72px; border-radius: 19px; margin: 0 auto 14px; display: block;
-      box-shadow: 0 10px 24px rgba(255, 45, 85, .35);
+      width: 68px;
+      height: 68px;
+      border-radius: var(--radius);
+      margin: 0 auto 15px;
+      display: block;
+      box-shadow: 7px 7px 0 rgba(221, 63, 44, .22);
     }
-    .overlay h2 { color: var(--text); font-size: 20px; letter-spacing: -.01em; text-transform: none; }
-    .overlay .ovtxt { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 8px 0 4px; }
+    .overlay h2 { color: var(--ink); font-size: 21px; line-height: 1.16; letter-spacing: 0; text-transform: none; }
+    .overlay .ovtxt { color: var(--ink-soft); font-size: 13px; line-height: 1.55; margin: 9px 0 4px; }
     .overlay .btn { margin-top: 16px; }
 
     .mini {
-      color: var(--muted-2); font-size: 11px; line-height: 1.6; text-align: center;
-      margin-top: 22px; max-width: 520px; margin-left: auto; margin-right: auto;
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
+      text-align: center;
+      max-width: 720px;
+      margin: 3px auto 0;
     }
-
     .hidden { display: none !important; }
 
+    @media (max-width: 860px) {
+      body { padding-left: 14px; padding-right: 14px; }
+      main { grid-template-columns: 1fr; }
+      .hero { min-height: 500px; }
+      .side { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .top { padding-top: 14px; align-items: flex-start; }
+      .logo { width: 42px; height: 42px; }
+      .brand h1 { font-size: 21px; }
+      .live-badge { min-height: 32px; padding: 0 10px; font-size: 11px; }
+      .hero { min-height: 510px; padding: 22px; }
+      .hero-title { font-size: 46px; }
+      .hero-sub { font-size: 14px; }
+      .panel-pad,
+      .last-card { padding: 18px; }
+      .sec-head { align-items: flex-start; flex-direction: column; gap: 4px; }
+      .sec-head .sub { text-align: left; }
+      .ev { grid-template-columns: 5px minmax(0, 1fr); }
+      .ev .ago { grid-column: 2; text-align: left; margin-top: -7px; }
+      .last-place { font-size: 20px; }
+    }
     @media (prefers-reduced-motion: reduce) {
-      .live-dot, .sb-share { animation: none; }
+      .live-dot,
+      .sb-share { animation: none; }
       .btn { transition: none; }
     }
   </style>
@@ -250,23 +472,23 @@
     <div class="card">
       <img class="icon" src="/icon-192.png" alt="SismoAlert">
       <h2 id="ovTitle">Instala la app</h2>
-      <p class="ovtxt" id="ovText">Las alertas solo llegan si la app esta instalada.</p>
+      <p class="ovtxt" id="ovText">Las alertas solo llegan si la app est&aacute; instalada.</p>
       <div class="hidden" id="iosVisual">
         <div class="safari-bar">
           <div class="sb-btn">&#9664;</div>
           <div class="sb-btn">&#9654;</div>
           <div class="sb-url">sismo-alert-pied.vercel.app</div>
           <div class="sb-share">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#d36a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg>
           </div>
         </div>
-        <div class="sb-arrow">&#8595; toca aqui</div>
+        <div class="sb-arrow">&#8595; toca aqu&iacute;</div>
         <ol class="ios-steps">
-          <li>Toca el boton Compartir en la barra de Safari <b>(cuadro con flecha)</b></li>
-          <li>En el menu busca <b>Agregar a pantalla de inicio</b></li>
+          <li>Toca el bot&oacute;n Compartir en la barra de Safari <b>(cuadro con flecha)</b></li>
+          <li>En el men&uacute; busca <b>Agregar a pantalla de inicio</b></li>
           <li>Toca <b>Agregar</b> y entra desde el icono en el inicio</li>
         </ol>
-        <p class="safari-tip">Si no lo ves: asegurate de abrir esta pagina en <b>Safari</b> (no en Chrome ni en la app de Instagram/Facebook).</p>
+        <p class="safari-tip">Si no lo ves: aseg&uacute;rate de abrir esta p&aacute;gina en <b>Safari</b> (no en Chrome ni en la app de Instagram/Facebook).</p>
       </div>
       <button class="btn" id="ovBtn"></button>
       <button class="btn ghost" id="ovSkip">Continuar sin instalar</button>
@@ -274,78 +496,93 @@
     </div>
   </div>
 
-  <header class="top">
-    <div class="brand">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg>
+        </div>
+        <div>
+          <h1>Sismo<span>Alert</span></h1>
+          <p>Colombia</p>
+        </div>
       </div>
-      <div>
-        <h1>Sismo<span>Alert</span></h1>
-        <p>Colombia</p>
-      </div>
-    </div>
-    <div class="live-badge"><span class="live-dot off" id="badgeDot"></span>EN VIVO</div>
-  </header>
+      <div class="live-badge"><span class="live-dot off" id="badgeDot"></span>EN VIVO</div>
+    </header>
 
-  <main>
-    <section class="card hero">
-      <div class="status-row"><span class="live-dot off" id="dot"></span><span id="status">Conectando...</span></div>
-      <h2 class="hero-title">Alerta sismica en <em>tiempo real</em></h2>
-      <p class="hero-sub">Monitoreamos USGS y EMSC las 24 horas. Te avisamos al instante cuando la tierra tiembla en la region.</p>
-      <button class="btn" id="btn" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-        <span id="btnText">Activar alertas</span>
-      </button>
-      <p class="hint" id="hint"></p>
-      <div class="wave" aria-hidden="true">
-        <svg viewBox="0 0 560 46" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="wv" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stop-color="#ff6b35" stop-opacity=".15"/>
-              <stop offset=".5" stop-color="#ff453a" stop-opacity=".9"/>
-              <stop offset="1" stop-color="#ff2d55" stop-opacity=".15"/>
-            </linearGradient>
-          </defs>
-          <path d="M0 23 Q 14 23 20 18 T 40 15 T 60 22 T 80 26 T 100 14 T 120 24 T 140 12 T 160 26 T 180 16 T 200 23 T 220 25 T 240 20 T 260 22 T 280 8 T 300 30 T 320 22 T 340 18 T 360 26 T 380 14 T 400 24 T 420 12 T 440 26 T 460 16 T 480 23 T 500 25 T 520 20 T 540 22 T 560 23"/>
-        </svg>
-      </div>
-    </section>
+    <main>
+      <section class="card hero">
+        <div class="hero-grid" aria-hidden="true"></div>
+        <div class="hero-copy">
+          <div class="status-row"><span class="live-dot off" id="dot"></span><span id="status">Conectando...</span></div>
+          <h2 class="hero-title">Alerta s&iacute;smica <em>en tiempo real</em></h2>
+          <p class="hero-sub">Monitoreo continuo de USGS y EMSC para Colombia. Activa las notificaciones y recibe el aviso apenas se registre un evento relevante.</p>
+        </div>
 
-    <section class="card" id="lastCard">
-      <h2>Ultimo sismo</h2>
-      <div class="empty" id="lastEmpty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg>
-        <p>Aun no hay eventos registrados.<br>Cuando ocurra un sismo, aparecera aqui.</p>
-      </div>
-      <div id="lastContent" class="hidden">
-        <div class="last-mag"><small>M</small><span id="lastMag">0.0</span><span class="tag" id="lastTag" style="display:none"></span></div>
-        <div class="last-place" id="lastPlace"></div>
-        <div class="chips" id="lastMeta"></div>
-      </div>
-    </section>
+        <div class="hero-action">
+          <button class="btn" id="btn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            <span id="btnText">Activar alertas</span>
+          </button>
+          <p class="hint" id="hint"></p>
+          <div class="wave" aria-hidden="true">
+            <svg viewBox="0 0 560 74" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="wv" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#fffaf1" stop-opacity=".15"/>
+                  <stop offset=".42" stop-color="#ff735f" stop-opacity=".95"/>
+                  <stop offset=".62" stop-color="#f5b85e" stop-opacity=".85"/>
+                  <stop offset="1" stop-color="#fffaf1" stop-opacity=".14"/>
+                </linearGradient>
+              </defs>
+              <path d="M0 38 Q 13 38 20 30 T 42 26 T 64 39 T 84 43 T 106 22 T 128 46 T 150 19 T 172 49 T 194 28 T 216 36 T 238 42 T 260 35 T 282 39 T 304 12 T 326 59 T 348 36 T 370 31 T 392 48 T 414 22 T 436 43 T 458 18 T 480 49 T 502 30 T 524 37 T 546 39 T 560 38"/>
+            </svg>
+          </div>
+        </div>
+      </section>
 
-    <section class="card">
-      <div class="sec-head">
-        <h2>Historial</h2>
-        <p class="sub" id="feedinfo"></p>
+      <div class="side">
+        <section class="card last-card" id="lastCard">
+          <div class="last-top">
+            <h2>Ultimo sismo</h2>
+          </div>
+          <div class="empty" id="lastEmpty">
+            <div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg>
+              <p>A&uacute;n no hay eventos registrados.<br>Cuando ocurra un sismo, aparecer&aacute; aqu&iacute;.</p>
+            </div>
+          </div>
+          <div id="lastContent" class="hidden">
+            <div class="last-mag"><small>M</small><span id="lastMag">0.0</span><span class="tag" id="lastTag" style="display:none"></span></div>
+            <div class="last-place" id="lastPlace"></div>
+            <div class="chips" id="lastMeta"></div>
+          </div>
+        </section>
+
+        <section class="card feed-card">
+          <div class="sec-head">
+            <h2>Historial</h2>
+            <p class="sub" id="feedinfo"></p>
+          </div>
+          <div id="events"><p class="hint">Cargando...</p></div>
+        </section>
+
+        <section class="card panel-pad hidden" id="iosHelpCard">
+          <h2>Recibir alertas en tu iPhone</h2>
+          <p class="sub">Safari solo env&iacute;a notificaciones a apps instaladas:</p>
+          <ol class="ios-steps">
+            <li>Abre esta p&aacute;gina en <b>Safari</b> (no Chrome)</li>
+            <li>Toca el bot&oacute;n Compartir <b>(cuadro con flecha)</b></li>
+            <li>Elige <b>Agregar a pantalla de inicio</b></li>
+            <li>Abre la app desde el inicio y pulsa <b>Activar alertas</b></li>
+          </ol>
+          <p class="hint">En Android: men&uacute; <b>Instalar aplicaci&oacute;n</b> en Chrome y luego Activar alertas.</p>
+        </section>
       </div>
-      <div id="events"><p class="hint">Cargando...</p></div>
-    </section>
 
-    <section class="card hidden" id="iosHelpCard">
-      <h2>Recibir alertas en tu iPhone</h2>
-      <p class="sub">Safari solo envia notificaciones a apps instaladas:</p>
-      <ol class="ios-steps">
-        <li>Abre esta pagina en <b>Safari</b> (no Chrome)</li>
-        <li>Toca el boton Compartir <b>(cuadro con flecha)</b></li>
-        <li>Elige <b>Agregar a pantalla de inicio</b></li>
-        <li>Abre la app desde el inicio y pulsa <b>Activar alertas</b></li>
-      </ol>
-      <p class="hint">En Android: menu <b>Instalar aplicacion</b> en Chrome y luego Activar alertas.</p>
-    </section>
-
-    <p class="mini">Fuentes: USGS y EMSC. Datos oficiales del Servicio Geologico Colombiano cuando este disponible. Este aviso complementa, no reemplaza, los sistemas oficiales.</p>
-  </main>
+      <p class="mini">Fuentes: USGS y EMSC. Datos oficiales del Servicio Geol&oacute;gico Colombiano cuando est&eacute; disponible. Este aviso complementa, no reemplaza, los sistemas oficiales.</p>
+    </main>
+  </div>
   <script src="/app.js"></script>
 </body>
 </html>
