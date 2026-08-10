@@ -1,13 +1,13 @@
 {
   "name": "SismoAlert Colombia",
   "short_name": "SismoAlert",
-  "description": "Alertas sismicas en tiempo real para Colombia",
+  "description": "Alerta sismica de Colombia en tiempo real. Gratis y para todos",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b1220",
-  "theme_color": "#0b1220",
+  "background_color": "#070b16",
+  "theme_color": "#070b16",
   "lang": "es-CO",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

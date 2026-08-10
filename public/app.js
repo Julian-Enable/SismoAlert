@@ -1,7 +1,9 @@
 const $ = (s) => document.querySelector(s);
 const dot = $('#dot');
+const badgeDot = $('#badgeDot');
 const statusEl = $('#status');
 const btn = $('#btn');
+const btnText = $('#btnText');
 const overlay = $('#overlay');
 const ovTitle = $('#ovTitle');
 const ovText = $('#ovText');
@@ -28,20 +30,46 @@ function urlBase64ToUint8Array(base64) {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
+const DANGER_TH = 6.0;
+const WARN_TH = 5.0;
+
+function magColor(m) {
+  if (m === null || m === undefined) return 'var(--muted)';
+  if (m >= DANGER_TH) return 'var(--m6)';
+  if (m >= WARN_TH) return 'var(--m5)';
+  return 'var(--m4)';
+}
+
+function agoText(ts) {
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (s < 60) return 'ahora mismo';
+  const m = Math.floor(s / 60);
+  if (m < 60) return 'hace ' + m + ' min';
+  const h = Math.floor(m / 60);
+  if (h < 24) return 'hace ' + h + ' h';
+  const d = Math.floor(h / 24);
+  return 'hace ' + d + ' d';
+}
+
+function dateStr(ts) {
+  return new Date(ts).toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 function setStatus(msg, ok = false) {
   statusEl.textContent = msg;
-  dot.className = ok ? 'dot on' : 'dot';
+  dot.className = ok ? 'live-dot' : 'live-dot off';
+  badgeDot.className = ok ? 'live-dot' : 'live-dot off';
 }
 
 function updateUI() {
   const active = !!sub;
-  btn.textContent = active ? 'Desactivar alertas' : 'Activar alertas';
+  btnText.textContent = active ? 'Desactivar alertas' : 'Activar alertas';
   btn.classList.toggle('off', active);
   btn.disabled = false;
   if (active) {
-    setStatus('Alertas activadas. Recibiras un aviso al instante cuando se detecte un sismo.', true);
+    setStatus('Alertas activadas: aviso al instante ante un sismo', true);
   } else {
-    setStatus('Sin alertas activas.');
+    setStatus('Sin alertas activas');
   }
 }
 
@@ -60,41 +88,84 @@ function hideOverlay() {
   try { localStorage.setItem('sa_skip_install', '1'); } catch {}
 }
 
+function renderLast(events) {
+  const empty = $('#lastEmpty');
+  const content = $('#lastContent');
+  const ev = events[0];
+  if (!ev) {
+    empty.classList.remove('hidden');
+    content.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  content.classList.remove('hidden');
+
+  const mag = ev.mag !== null && ev.mag !== undefined ? ev.mag.toFixed(1) : 'n/d';
+  const magEl = $('#lastMag');
+  magEl.textContent = mag;
+  magEl.style.color = magColor(ev.mag);
+
+  const tagEl = $('#lastTag');
+  const labels = [];
+  if (ev.source === 'TEST') labels.push('SIMULACRO');
+  if (ev.status === 'actualizado') labels.push('ACTUALIZADO');
+  if (!labels.length) {
+    tagEl.style.display = 'none';
+  } else {
+    tagEl.textContent = labels.join(' · ');
+    tagEl.style.display = 'inline-block';
+  }
+
+  $('#lastPlace').textContent = ev.place || 'Ubicacion desconocida';
+
+  const meta = $('#lastMeta');
+  meta.innerHTML = '';
+  const parts = [
+    'Prof. ' + (ev.depth ?? 'n/d') + ' km',
+    'Fuente ' + (ev.source || 'n/d'),
+    ev.lat !== undefined && ev.lon !== undefined ? ev.lat.toFixed(2) + ', ' + ev.lon.toFixed(2) : null,
+    dateStr(ev.time)
+  ];
+  for (const p of parts) {
+    if (!p) continue;
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = p;
+    meta.appendChild(chip);
+  }
+}
+
+function evItem(e) {
+  const mag = e.mag !== null && e.mag !== undefined ? e.mag.toFixed(1) : 'n/d';
+  const color = magColor(e.mag);
+  const tag = e.status === 'actualizado' ? '<span class="tag updated">ACTU</span> ' : '';
+  const test = e.source === 'TEST' ? '<span class="tag test">SIMULACRO</span> ' : '';
+  const el = document.createElement('div');
+  el.className = 'ev';
+  el.innerHTML =
+    '<div class="rail" style="background:' + color + '"></div>' +
+    '<div><div><span class="mag" style="color:' + color + '">M' + mag + '</span> ' + tag + test +
+    '<span class="place">' + (e.place || '?') + '</span></div>' +
+    '<div class="meta">' + dateStr(e.time) + ' | ' + (e.source || 'n/d') + '</div></div>' +
+    '<div class="ago">' + agoText(e.time) + '</div>';
+  return el;
+}
+
 async function loadEvents() {
   try {
     const r = await fetch('/api/events');
     const { events } = await r.json();
     const box = $('#events');
     const info = $('#feedinfo');
-    info.textContent = events.length ? 'Eventos recientes en la region:' : 'Sin eventos recientes registrados.';
+    renderLast(events);
+    info.textContent = events.length ? 'Eventos recientes en la region' : 'Sin eventos recientes';
     box.innerHTML = '';
     if (!events.length) {
       box.innerHTML = '<p class="hint">Aun no hay eventos registrados. Cuando ocurra uno, aparecera aqui.</p>';
+      return;
     }
-    events.forEach((e) => {
-      const d = new Date(e.time);
-      const el = document.createElement('div');
-      el.className = 'ev';
-      const mag = e.mag !== null && e.mag !== undefined ? e.mag.toFixed(1) : 'n/d';
-      const tag = e.status === 'actualizado' ? '<span class="tag updated">ACTUALIZADO</span>' : '';
-      const test = e.source === 'TEST' ? '<span class="tag test">SIMULACRO</span>' : '';
-      el.innerHTML =
-        `<div><span class="mag">M${mag}</span>${tag}${test} <span class="place">${e.place || '?'}</span></div>` +
-        `<div class="meta">${d.toLocaleString('es-CO', { timeZone: 'America/Bogota' })} | ${e.source} | prof. ${e.depth ?? 'n/d'} km</div>`;
-      box.appendChild(el);
-    });
+    events.forEach((e) => box.appendChild(evItem(e)));
   } catch {}
-}
-
-function iosShare() {
-  if (navigator.share) {
-    navigator
-      .share({ title: 'SismoAlert Colombia', url: location.href })
-      .catch(() => {});
-    ovHint.textContent = 'En el panel que se abrio elige "Agregar a pantalla de inicio".';
-  } else {
-    iosVisual.classList.remove('hidden');
-  }
 }
 
 function handleInstallFlow() {
@@ -106,10 +177,10 @@ function handleInstallFlow() {
     if (!skipped) {
       showOverlay({
         title: 'Instala la app para recibir alertas',
-        text: '',
+        text: 'Es gratis y toma 20 segundos. En iPhone, las alertas push solo funcionan con la app instalada.',
         btnText: 'Continuar sin instalar',
         btnAction: hideOverlay,
-        hint: 'Es gratis y toma 20 segundos. En iPhone, las alertas push solo funcionan con la app instalada.'
+        hint: ''
       });
       iosVisual.classList.remove('hidden');
     }
@@ -134,12 +205,8 @@ function handleInstallFlow() {
 
 async function enable() {
   if (isIOS && !isStandalone) {
-    if (navigator.share) {
-      navigator.share({ title: 'SismoAlert Colombia', url: location.href }).catch(() => {});
-      setStatus('En el panel elige "Agregar a pantalla de inicio" y entra desde el icono.');
-    } else {
-      setStatus('Instala la app siguiendo los pasos para poder activar las alertas.');
-    }
+    setStatus('Instala la app siguiendo la guia para poder activar las alertas.');
+    handleInstallFlow();
     return;
   }
   setStatus('Pidiendo permiso...');
@@ -208,6 +275,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadEvents();
 });
+
+setInterval(loadEvents, 60000);
 
 (async () => {
   try {

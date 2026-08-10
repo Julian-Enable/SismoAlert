@@ -3,107 +3,246 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b1220">
-  <title>SismoAlert Colombia</title>
+  <meta name="theme-color" content="#070b16">
+  <meta name="description" content="Alertas sísmicas de Colombia en tiempo real. Gratis, para todos.">
+  <title>SismoAlert | Alertas sísmicas Colombia</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <style>
     :root {
-      --bg: #0b1220; --card: #131c2e; --line: #22304c;
-      --text: #e8eefd; --muted: #8fa3c8; --accent: #ffb020; --danger: #ff4d4d;
-      --green: #2ecc71;
+      --bg0: #05080f;
+      --bg1: #0a1222;
+      --card: rgba(18, 27, 48, .62);
+      --card-solid: #111a2e;
+      --line: rgba(148, 163, 255, .14);
+      --line-strong: rgba(148, 163, 255, .30);
+      --text: #eef2ff;
+      --muted: #8fa0c4;
+      --muted-2: #5c6b8f;
+      --live: #22c55e;
+      --m4: #ffd60a;
+      --m5: #ff9f0a;
+      --m6: #ff453a;
+      --glass-hi: rgba(255, 255, 255, .06);
+      --radius: 20px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+      background:
+        radial-gradient(900px 480px at 85% -10%, rgba(255, 69, 58, .10), transparent 60%),
+        radial-gradient(700px 420px at -10% 12%, rgba(64, 120, 255, .10), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg0) 55%);
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
     }
-    header {
-      padding: 20px 20px 16px; display: flex; align-items: center; gap: 12px;
+    main { max-width: 560px; margin: 0 auto; padding-bottom: 48px; }
+
+    /* ---------- Header ---------- */
+    .top {
+      max-width: 560px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 4px 16px;
     }
-    header img { width: 44px; height: 44px; border-radius: 10px; }
-    header h1 { font-size: 20px; }
-    header p { color: var(--muted); font-size: 13px; }
-    main { padding: 0 20px 40px; max-width: 560px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+      background: linear-gradient(160deg, #ff6b35, #ff2d55);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 18px rgba(255, 45, 85, .35);
+    }
+    .logo svg { width: 26px; height: 26px; }
+    .brand h1 { font-size: 21px; font-weight: 800; letter-spacing: .02em; line-height: 1.1; }
+    .brand h1 span { color: #ff5c4d; }
+    .brand p { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .live-badge {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--live);
+      background: rgba(34, 197, 94, .10); border: 1px solid rgba(34, 197, 94, .30);
+      border-radius: 99px; padding: 7px 12px;
+    }
+    .live-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: var(--live);
+      animation: livePulse 1.8s ease-in-out infinite;
+    }
+    .live-dot.off { background: var(--muted-2); animation: none; }
+    @keyframes livePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .40); }
+      50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+    }
+
+    /* ---------- Cards ---------- */
     .card {
-      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-      padding: 18px; margin-bottom: 16px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: inset 0 1px 0 var(--glass-hi), 0 12px 32px rgba(0, 0, 0, .35);
     }
-    .status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
-    .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
-    .btn {
-      width: 100%; border: none; border-radius: 12px; padding: 14px;
-      font-size: 16px; font-weight: 700; cursor: pointer; color: #0b1220;
-      background: linear-gradient(135deg, #ffb020, #ff7a00);
-    }
-    .btn:disabled { opacity: .5; cursor: default; }
-    .btn.off { background: var(--card); color: var(--danger); border: 1px solid var(--danger); }
-    .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--line); margin-top: 10px; }
-    .hint { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 12px; }
+    h2 { font-size: 14px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .sub { color: var(--muted-2); font-size: 12px; margin-top: 4px; }
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.55; margin-top: 12px; }
     .hint b { color: var(--text); }
-    .ev { padding: 12px 0; border-bottom: 1px solid var(--line); }
-    .ev:last-child { border-bottom: none; }
-    .ev .mag { font-size: 18px; font-weight: 800; color: var(--accent); }
-    .ev .place { font-weight: 600; }
-    .ev .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    /* ---------- Hero ---------- */
+    .hero { position: relative; overflow: hidden; text-align: center; }
+    .hero .status-row {
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+      font-size: 14px; font-weight: 700; color: var(--muted); margin-bottom: 16px;
+    }
+    .hero .status-row .live-dot { width: 10px; height: 10px; }
+    .hero-title { font-size: 24px; font-weight: 900; letter-spacing: -.02em; margin-bottom: 6px; }
+    .hero-title em { font-style: normal; color: #ff5c4d; }
+    .hero-sub { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 22px; }
+
+    .btn {
+      width: 100%; border: none; cursor: pointer; border-radius: 16px;
+      padding: 17px; font-size: 16px; font-weight: 800; letter-spacing: .01em;
+      color: #fff; font-family: inherit;
+      background: linear-gradient(135deg, #ff6b35, #ff2d55);
+      box-shadow: 0 12px 28px rgba(255, 45, 85, .35);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: transform .12s ease, box-shadow .12s ease, opacity .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+    .btn svg { width: 19px; height: 19px; }
+    .btn.off {
+      background: var(--card-solid); color: #ff5c4d;
+      border: 1px solid rgba(255, 92, 77, .55); box-shadow: none;
+    }
+    .btn.ghost {
+      background: rgba(255, 255, 255, .05); color: var(--text);
+      border: 1px solid var(--line); box-shadow: none; margin-top: 10px;
+    }
+    .wave { margin-top: 6px; opacity: .85; }
+    .wave svg { width: 100%; height: 46px; display: block; }
+    .wave path { stroke: url(#wv); stroke-width: 2.2; fill: none; }
+
+    /* ---------- Last event ---------- */
+    .last-mag {
+      display: flex; align-items: baseline; gap: 12px; margin-top: 12px;
+      font-size: 54px; font-weight: 900; letter-spacing: -.04em; line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .last-mag small { font-size: 20px; font-weight: 800; color: var(--muted); margin-right: -4px; }
+    .last-place { font-size: 19px; font-weight: 800; margin-top: 8px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .chip {
+      font-size: 11px; font-weight: 800; letter-spacing: .06em; padding: 5px 10px;
+      border-radius: 99px; background: var(--card-solid); color: var(--muted);
+      border: 1px solid var(--line);
+    }
     .tag {
-      display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px;
-      border-radius: 99px; margin-left: 8px; vertical-align: 2px;
+      display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .06em;
+      padding: 3px 9px; border-radius: 99px; vertical-align: 4px;
     }
-    .tag.updated { background: rgba(255,77,77,.15); color: var(--danger); }
-    .tag.test { background: rgba(143,163,200,.15); color: var(--muted); }
-    h2 { font-size: 16px; margin-bottom: 4px; }
-    .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
-    .ios-steps { counter-reset: step; margin-top: 12px; text-align: left; }
-    .ios-steps li { list-style: none; counter-increment: step; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
+    .tag.updated { background: rgba(255, 214, 10, .14); color: var(--m4); border: 1px solid rgba(255, 214, 10, .4); }
+    .tag.test { background: rgba(143, 160, 196, .14); color: var(--muted); border: 1px solid var(--line-strong); }
+    .empty {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 26px 0 20px; color: var(--muted-2); text-align: center;
+    }
+    .empty svg { width: 46px; height: 46px; opacity: .5; }
+    .empty p { font-size: 13px; line-height: 1.5; }
+
+    /* ---------- Feed ---------- */
+    .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .sec-head .sub { margin-top: 0; }
+    #events { margin-top: 6px; }
+    .ev {
+      display: grid; grid-template-columns: 4px 1fr auto; gap: 14px;
+      padding: 14px 0; border-bottom: 1px solid var(--line); align-items: center;
+    }
+    .ev:last-child { border-bottom: none; }
+    .ev .rail { width: 4px; border-radius: 99px; height: 46px; }
+    .ev .mag {
+      font-size: 23px; font-weight: 900; letter-spacing: -.03em;
+      font-variant-numeric: tabular-nums; display: inline-block;
+    }
+    .ev .place { font-size: 15px; font-weight: 700; }
+    .ev .meta { color: var(--muted-2); font-size: 12px; margin-top: 3px; }
+    .ev .ago {
+      font-size: 11px; font-weight: 700; color: var(--muted-2); text-align: right;
+      white-space: nowrap; font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------- IOS help ---------- */
+    .ios-steps { counter-reset: step; margin-top: 12px; }
+    .ios-steps li {
+      list-style: none; counter-increment: step;
+      color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 9px;
+      display: flex; gap: 10px; align-items: baseline;
+    }
+    .ios-steps li b { color: var(--text); }
     .ios-steps li::before {
-      content: counter(step); width: 20px; height: 20px; border-radius: 50%;
-      background: var(--line); color: var(--text); display: inline-flex;
-      align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
-      margin-right: 8px;
+      content: counter(step); flex-shrink: 0;
+      width: 22px; height: 22px; border-radius: 7px;
+      background: rgba(255, 92, 77, .14); border: 1px solid rgba(255, 92, 77, .35);
+      color: #ff7a6b; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800;
     }
-    .mini { font-size: 12px; color: var(--muted); text-align: center; margin-top: 20px; }
-
-    .overlay {
-      position: fixed; inset: 0; z-index: 50; display: flex;
-      align-items: center; justify-content: center; padding: 20px;
-      background: rgba(5, 10, 20, .92); backdrop-filter: blur(6px);
-    }
-    .overlay.hidden { display: none; }
-    .overlay .card { max-width: 420px; width: 100%; text-align: center; }
-    .overlay .icon { width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 12px; display: block; }
-    .overlay h2 { font-size: 19px; margin-bottom: 8px; }
-    .overlay p { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
-    .overlay .btn { margin-top: 16px; }
-    .subtitle { color: var(--muted); font-size: 13px; line-height: 1.5; }
-
     .safari-bar {
-      display: flex; align-items: center; gap: 8px; margin: 14px 0 4px;
-      background: #0d1526; border: 1px solid var(--line); border-radius: 12px;
+      display: flex; align-items: center; gap: 9px; margin: 16px 0 6px;
+      background: var(--bg1); border: 1px solid var(--line-strong); border-radius: 14px;
       padding: 10px 12px; max-width: 360px; margin-left: auto; margin-right: auto;
     }
     .sb-btn { color: var(--muted); font-size: 15px; font-weight: 700; min-width: 16px; text-align: center; }
     .sb-url {
-      flex: 1; background: var(--bg); border-radius: 8px; padding: 6px 10px;
+      flex: 1; background: rgba(5, 8, 15, .8); border-radius: 8px; padding: 6px 10px;
       font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden;
       text-overflow: ellipsis; border: 1px solid var(--line);
     }
     .sb-share {
-      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(255,176,32,.18); border: 2px solid var(--accent);
+      background: rgba(255, 176, 32, .16); border: 2px solid var(--m5);
       animation: pulse 1.6s ease-in-out infinite;
     }
-    .sb-share svg { width: 18px; height: 18px; }
-    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,176,32,.45); } 50% { box-shadow: 0 0 0 9px rgba(255,176,32,0); } }
-    .sb-arrow {
-      display: flex; justify-content: center; margin: 2px 0 10px;
-      color: var(--accent); font-size: 20px; font-weight: 800;
+    .sb-share svg { width: 19px; height: 19px; }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 159, 10, .45); }
+      50% { box-shadow: 0 0 0 10px rgba(255, 159, 10, 0); }
     }
-    .safari-tip { color: var(--muted); font-size: 12px; margin-top: 10px; }
-    .safari-tip b { color: var(--accent); }
+    .sb-arrow { display: flex; justify-content: center; margin: 2px 0 8px; color: var(--m5); font-size: 20px; font-weight: 800; }
+    .safari-tip { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 10px; }
+    .safari-tip b { color: var(--m5); }
+
+    /* ---------- Overlay ---------- */
+    .overlay {
+      position: fixed; inset: 0; z-index: 50; display: flex;
+      align-items: center; justify-content: center; padding: 20px;
+      background: rgba(5, 8, 15, .93); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    }
+    .overlay.hidden { display: none; }
+    .overlay .card { max-width: 420px; width: 100%; text-align: center; }
+    .overlay .icon {
+      width: 72px; height: 72px; border-radius: 19px; margin: 0 auto 14px; display: block;
+      box-shadow: 0 10px 24px rgba(255, 45, 85, .35);
+    }
+    .overlay h2 { color: var(--text); font-size: 20px; letter-spacing: -.01em; text-transform: none; }
+    .overlay .ovtxt { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 8px 0 4px; }
+    .overlay .btn { margin-top: 16px; }
+
+    .mini {
+      color: var(--muted-2); font-size: 11px; line-height: 1.6; text-align: center;
+      margin-top: 22px; max-width: 520px; margin-left: auto; margin-right: auto;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot, .sb-share { animation: none; }
+      .btn { transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -111,14 +250,14 @@
     <div class="card">
       <img class="icon" src="/icon-192.png" alt="SismoAlert">
       <h2 id="ovTitle">Instala la app</h2>
-      <p id="ovText">Las alertas solo llegan si la app esta instalada.</p>
+      <p class="ovtxt" id="ovText">Las alertas solo llegan si la app esta instalada.</p>
       <div class="hidden" id="iosVisual">
         <div class="safari-bar">
           <div class="sb-btn">&#9664;</div>
           <div class="sb-btn">&#9654;</div>
           <div class="sb-url">sismo-alert-pied.vercel.app</div>
           <div class="sb-share">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg>
           </div>
         </div>
         <div class="sb-arrow">&#8595; toca aqui</div>
@@ -135,37 +274,75 @@
     </div>
   </div>
 
-  <header>
-    <img src="/icon-192.png" alt="SismoAlert">
-    <div>
-      <h1>SismoAlert Colombia</h1>
-      <p>Aviso sismico en tiempo real, gratis y para todos</p>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg>
+      </div>
+      <div>
+        <h1>Sismo<span>Alert</span></h1>
+        <p>Colombia</p>
+      </div>
     </div>
+    <div class="live-badge"><span class="live-dot off" id="badgeDot"></span>EN VIVO</div>
   </header>
+
   <main>
-    <div class="card">
-      <div class="status-row"><span class="dot" id="dot"></span><span id="status">Cargando...</span></div>
-      <button class="btn" id="btn" disabled>Activar alertas</button>
+    <section class="card hero">
+      <div class="status-row"><span class="live-dot off" id="dot"></span><span id="status">Conectando...</span></div>
+      <h2 class="hero-title">Alerta sismica en <em>tiempo real</em></h2>
+      <p class="hero-sub">Monitoreamos USGS y EMSC las 24 horas. Te avisamos al instante cuando la tierra tiembla en la region.</p>
+      <button class="btn" id="btn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span id="btnText">Activar alertas</span>
+      </button>
       <p class="hint" id="hint"></p>
-    </div>
+      <div class="wave" aria-hidden="true">
+        <svg viewBox="0 0 560 46" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="wv" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#ff6b35" stop-opacity=".15"/>
+              <stop offset=".5" stop-color="#ff453a" stop-opacity=".9"/>
+              <stop offset="1" stop-color="#ff2d55" stop-opacity=".15"/>
+            </linearGradient>
+          </defs>
+          <path d="M0 23 Q 14 23 20 18 T 40 15 T 60 22 T 80 26 T 100 14 T 120 24 T 140 12 T 160 26 T 180 16 T 200 23 T 220 25 T 240 20 T 260 22 T 280 8 T 300 30 T 320 22 T 340 18 T 360 26 T 380 14 T 400 24 T 420 12 T 440 26 T 460 16 T 480 23 T 500 25 T 520 20 T 540 22 T 560 23"/>
+        </svg>
+      </div>
+    </section>
 
-    <div class="card">
-      <h2>Ultimos sismos</h2>
-      <p class="sub" id="feedinfo"></p>
+    <section class="card" id="lastCard">
+      <h2>Ultimo sismo</h2>
+      <div class="empty" id="lastEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6"/></svg>
+        <p>Aun no hay eventos registrados.<br>Cuando ocurra un sismo, aparecera aqui.</p>
+      </div>
+      <div id="lastContent" class="hidden">
+        <div class="last-mag"><small>M</small><span id="lastMag">0.0</span><span class="tag" id="lastTag" style="display:none"></span></div>
+        <div class="last-place" id="lastPlace"></div>
+        <div class="chips" id="lastMeta"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="sec-head">
+        <h2>Historial</h2>
+        <p class="sub" id="feedinfo"></p>
+      </div>
       <div id="events"><p class="hint">Cargando...</p></div>
-    </div>
+    </section>
 
-    <div class="card hidden" id="iosHelpCard">
+    <section class="card hidden" id="iosHelpCard">
       <h2>Recibir alertas en tu iPhone</h2>
-      <p class="sub">Safari solo envia notificaciones push a apps instaladas:</p>
+      <p class="sub">Safari solo envia notificaciones a apps instaladas:</p>
       <ol class="ios-steps">
-        <li>Abre esta pagina en Safari (no Chrome)</li>
+        <li>Abre esta pagina en <b>Safari</b> (no Chrome)</li>
         <li>Toca el boton Compartir <b>(cuadro con flecha)</b></li>
         <li>Elige <b>Agregar a pantalla de inicio</b></li>
         <li>Abre la app desde el inicio y pulsa <b>Activar alertas</b></li>
       </ol>
       <p class="hint">En Android: menu <b>Instalar aplicacion</b> en Chrome y luego Activar alertas.</p>
-    </div>
+    </section>
 
     <p class="mini">Fuentes: USGS y EMSC. Datos oficiales del Servicio Geologico Colombiano cuando este disponible. Este aviso complementa, no reemplaza, los sistemas oficiales.</p>
   </main>
