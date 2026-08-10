@@ -10,10 +10,12 @@ export async function fetchAllFeeds(includeSgc = false) {
   if (includeSgc && config.SGC_API_URL) fetches.push(fetchSgc(config.SGC_API_URL));
   const results = await Promise.allSettled(fetches);
   const all = [];
+  const errors = [];
   for (const r of results) {
     if (r.status === 'fulfilled') all.push(...r.value);
+    else errors.push(String(r.reason?.message || r.reason));
   }
-  return all;
+  return { events: all, errors };
 }
 
 export function inRegion(e, cfg) {
@@ -26,7 +28,7 @@ export function qualifies(e, cfg) {
 }
 
 export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 60 * 1000 } = {}) {
-  const all = await fetchAllFeeds(includeSgc);
+  const { events: all, errors } = await fetchAllFeeds(includeSgc);
   const seen = { ...state.seen };
   const events = [...state.events];
   const alerts = [];
@@ -34,11 +36,14 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
   const seenIds = new Set();
   const repeats = [];
   const limitSeen = now - 7 * 24 * 3600 * 1000;
+  const trace = { all: all.length, region: 0, display: 0, inserted: 0, feedErr: errors };
 
   for (const e of all) {
     if (!inRegion(e, cfg)) continue;
+    trace.region++;
     if (e.mag === null || e.mag === undefined) continue;
     if (e.mag < cfg.MIN_DISPLAY_MAG) continue;
+    trace.display++;
 
     const prev = seen[e.id];
     const isNew = !prev;
@@ -51,6 +56,7 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
     if (!seenIds.has(e.id)) {
       seenIds.add(e.id);
       events.unshift(event);
+      trace.inserted++;
       if (events.length > 200) events.length = 200;
     }
     if (e.mag >= cfg.MIN_MAG && now - e.time <= freshMs) {
@@ -70,7 +76,8 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
 
   return {
     next: { seen, events, subs: state.subs, pending: Array.from(pending.values()) },
-    alerts
+    alerts,
+    trace
   };
 }
 

@@ -58,6 +58,7 @@ export default async function handler(req, res) {
         lastAlerts: state.stats ? state.stats.lastAlerts : null,
         lastEvents: state.stats ? state.stats.events : null,
         lastError: state.stats ? state.stats.lastError || null : null,
+        trace: state.stats ? state.stats.trace || null : null,
         seenSample: state.seen ? JSON.stringify(state.seen).slice(0, 100) : null,
         pendingSample: state.pending ? JSON.stringify(state.pending).slice(0, 120) : null,
         eventsSample: Array.isArray(state.events) ? JSON.stringify(state.events).slice(0, 150) : null

@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   try {
     let state = await getState();
-    const { next, alerts } = await runTick(state, cfg);
+    const { next, alerts, trace } = await runTick(state, cfg);
     let stale = [];
     for (const alert of alerts) {
       stale = stale.concat(await broadcast(alert, next.subs));
@@ -32,7 +32,8 @@ next.stats = {
         lastRepeats: due.length,
         subs: next.subs.length,
         events: next.events.length,
-        seen: Object.keys(next.seen).length
+        seen: Object.keys(next.seen).length,
+        trace
       };
     await saveState(next);
     res.status(200).json({ ok: true, alerts: alerts.length, repeats: due.length, pending: pending.length, subs: next.subs.length, events: next.events.length });
