@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/cron.js": {
+      "maxDuration": 60
+    },
+    "api/test.js": {
+      "maxDuration": 60
+    }
+  }
+}
