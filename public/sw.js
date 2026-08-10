@@ -15,7 +15,8 @@ self.addEventListener('push', (e) => {
     badge: '/icon-192.png',
     tag: data.tag || 'sismo',
     renotify: true,
-    vibrate: [300, 100, 300],
+    requireInteraction: true,
+    vibrate: [500, 200, 500, 200, 1000],
     data: { url: data.url || '/' }
   };
   e.waitUntil(self.registration.showNotification(data.title || 'Sismo detectado', options));
