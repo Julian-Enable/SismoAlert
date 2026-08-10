@@ -13,6 +13,22 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Secreto invalido' });
   }
 
+  if (req.query?.action === 'cleanup') {
+    const state = await getState();
+    const events = state.events || [];
+    const isTest = (e) => e.source === 'TEST' || String(e.id || '').startsWith('test:');
+    const keepEvents = events.filter((e) => !isTest(e));
+    const next = {
+      seen: state.seen ? { ...state.seen } : {},
+      events: keepEvents,
+      subs: state.subs,
+      pending: (state.pending || []).filter((p) => !String(p.id || '').startsWith('test:'))
+    };
+    for (const e of events) if (isTest(e)) delete next.seen[e.id];
+    await saveState(next);
+    return res.status(200).json({ ok: true, removed: events.length - keepEvents.length });
+  }
+
   const mag = req.query?.mag ? Number(req.query.mag) : 5.0;
   const place = req.query?.place || 'Bogota (SIMULACRO)';
 
