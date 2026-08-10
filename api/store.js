@@ -1,36 +1,33 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-const IS_REDIS = !!(
-  (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) ||
-  (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
-);
+const REST_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+const REST_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const IS_REDIS = !!(REST_URL && REST_TOKEN);
 const DEV_FILE = join(process.cwd(), 'data', 'kv.json');
 
-let redis = null;
-
-async function getRedis() {
-  if (!redis) {
-    const { Redis } = await import('@upstash/redis');
-    redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN
-    });
-  }
-  return redis;
+function auth() {
+  return { Authorization: 'Bearer ' + REST_TOKEN };
 }
 
-function readDev() {
-  try {
-    return JSON.parse(readFileSync(DEV_FILE, 'utf8'));
-  } catch {
-    return { seen: {}, events: [], subs: [] };
+async function kvGet(key) {
+  const r = await fetch(`${REST_URL}/get/${key}`, { headers: auth() });
+  if (!r.ok) throw new Error('KV GET ' + r.status);
+  const data = await r.json();
+  let value = data?.result ?? null;
+  if (typeof value === 'string' && value.startsWith('~')) {
+    value = Buffer.from(value.slice(1), 'base64').toString('utf8');
   }
+  return value;
 }
 
-function writeDev(state) {
-  mkdirSync(dirname(DEV_FILE), { recursive: true });
-  writeFileSync(DEV_FILE, JSON.stringify(state));
+async function kvSet(key, value) {
+  const r = await fetch(`${REST_URL}/set/${key}`, {
+    method: 'POST',
+    headers: { ...auth(), 'Content-Type': 'text/plain' },
+    body: value
+  });
+  if (!r.ok) throw new Error('KV SET ' + r.status);
 }
 
 function safeParse(v, fallback) {
@@ -46,13 +43,25 @@ function safeParse(v, fallback) {
   }
 }
 
+function readDev() {
+  try {
+    return JSON.parse(readFileSync(DEV_FILE, 'utf8'));
+  } catch {
+    return { seen: {}, events: [], subs: [] };
+  }
+}
+
+function writeDev(state) {
+  mkdirSync(dirname(DEV_FILE), { recursive: true });
+  writeFileSync(DEV_FILE, JSON.stringify(state));
+}
+
 export async function getState() {
   if (IS_REDIS) {
-    const r = await getRedis();
     const [seen, events, subs] = await Promise.all([
-      r.get('seen'),
-      r.get('events'),
-      r.get('subs')
+      kvGet('seen'),
+      kvGet('events'),
+      kvGet('subs')
     ]);
     return {
       seen: safeParse(seen, {}),
@@ -66,11 +75,10 @@ export async function getState() {
 export async function saveState(state) {
   const next = { seen: state.seen || {}, events: state.events || [], subs: state.subs || [] };
   if (IS_REDIS) {
-    const r = await getRedis();
     await Promise.all([
-      r.set('seen', JSON.stringify(next.seen)),
-      r.set('events', JSON.stringify(next.events)),
-      r.set('subs', JSON.stringify(next.subs))
+      kvSet('seen', JSON.stringify(next.seen)),
+      kvSet('events', JSON.stringify(next.events)),
+      kvSet('subs', JSON.stringify(next.subs))
     ]);
   } else {
     writeDev(next);
