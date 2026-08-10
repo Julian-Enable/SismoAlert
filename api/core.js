@@ -33,10 +33,13 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
   const now = Date.now();
   const seenIds = new Set();
   const repeats = [];
+  const limitSeen = now - 7 * 24 * 3600 * 1000;
 
   for (const e of all) {
-    if (!qualifies(e, cfg)) continue;
-    const fresh = now - e.time <= freshMs;
+    if (!inRegion(e, cfg)) continue;
+    if (e.mag === null || e.mag === undefined) continue;
+    if (e.mag < cfg.MIN_DISPLAY_MAG) continue;
+
     const prev = seen[e.id];
     const isNew = !prev;
     const upgraded = !isNew && e.mag - (prev.mag ?? 0) >= 0.5;
@@ -50,12 +53,16 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
       events.unshift(event);
       if (events.length > 200) events.length = 200;
     }
-    if (fresh) {
+    if (e.mag >= cfg.MIN_MAG && now - e.time <= freshMs) {
       alerts.push({ ...event, alertTime: now });
       if (e.mag >= cfg.RESEND_MIN_MAG) {
         repeats.push({ id: e.id, sends: cfg.RESEND_TIMES - 1, n: 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
       }
     }
+  }
+
+  for (const id of Object.keys(seen)) {
+    if (seen[id].time && seen[id].time < limitSeen) delete seen[id];
   }
 
   const pending = new Map((state.pending || []).map((p) => [p.id, p]));

@@ -32,12 +32,14 @@ function urlBase64ToUint8Array(base64) {
 
 const DANGER_TH = 6.0;
 const WARN_TH = 5.0;
+const NOTICE_TH = 3.5;
 
 function magColor(m) {
   if (m === null || m === undefined) return 'var(--muted)';
   if (m >= DANGER_TH) return 'var(--m6)';
   if (m >= WARN_TH) return 'var(--m5)';
-  return 'var(--m4)';
+  if (m >= NOTICE_TH) return 'var(--m4)';
+  return 'var(--muted-2)';
 }
 
 function agoText(ts) {

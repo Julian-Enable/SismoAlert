@@ -25,6 +25,7 @@ export const config = {
   PORT: num(env.PORT, 3000),
   POLL_INTERVAL_MS: num(env.POLL_INTERVAL_MS, 20000),
   MIN_MAG: num(env.MIN_MAG, 4.0),
+  MIN_DISPLAY_MAG: num(env.MIN_DISPLAY_MAG, 0),
   MIN_LAT: num(env.MIN_LAT, -6),
   MAX_LAT: num(env.MAX_LAT, 15),
   MIN_LON: num(env.MIN_LON, -85),
