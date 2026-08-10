@@ -26,16 +26,21 @@ export default async function handler(req, res) {
     if (stale.length) {
       next.subs = next.subs.filter((s) => !stale.includes(s.endpoint));
     }
-    next.stats = {
-      lastTick: Date.now(),
-      lastAlerts: alerts.length,
-      lastRepeats: due.length,
-      subs: next.subs.length,
-      events: next.events.length
-    };
+next.stats = {
+        lastTick: Date.now(),
+        lastAlerts: alerts.length,
+        lastRepeats: due.length,
+        subs: next.subs.length,
+        events: next.events.length,
+        seen: Object.keys(next.seen).length
+      };
     await saveState(next);
-    res.status(200).json({ ok: true, alerts: alerts.length, repeats: due.length, pending: pending.length, subs: next.subs.length });
+    res.status(200).json({ ok: true, alerts: alerts.length, repeats: due.length, pending: pending.length, subs: next.subs.length, events: next.events.length });
   } catch (err) {
+    try {
+      const st = await getState();
+      await saveState({ ...st, stats: { ...(st.stats || {}), lastTick: Date.now(), lastError: String(err?.message || err) } });
+    } catch {}
     res.status(500).json({ error: err.message });
   }
 }

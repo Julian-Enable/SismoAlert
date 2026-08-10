@@ -55,6 +55,9 @@ export default async function handler(req, res) {
         subsCount: Array.isArray(state.subs) ? state.subs.length : 'n/a',
         lastTick: state.stats ? state.stats.lastTick : null,
         lastTickAgoSec: state.stats ? Math.round((Date.now() - state.stats.lastTick) / 1000) : null,
+        lastAlerts: state.stats ? state.stats.lastAlerts : null,
+        lastEvents: state.stats ? state.stats.events : null,
+        lastError: state.stats ? state.stats.lastError || null : null,
         seenSample: state.seen ? JSON.stringify(state.seen).slice(0, 100) : null,
         pendingSample: state.pending ? JSON.stringify(state.pending).slice(0, 120) : null,
         eventsSample: Array.isArray(state.events) ? JSON.stringify(state.events).slice(0, 150) : null
