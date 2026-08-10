@@ -33,14 +33,27 @@ function writeDev(state) {
   writeFileSync(DEV_FILE, JSON.stringify(state));
 }
 
+function safeParse(v, fallback) {
+  if (v === null || v === undefined || v === '') return fallback;
+  if (typeof v !== 'string') return fallback;
+  try {
+    const o = JSON.parse(v);
+    if (Array.isArray(fallback)) return Array.isArray(o) ? o : fallback;
+    if (typeof o === 'object' && o !== null) return o;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function getState() {
   if (IS_REDIS) {
     const r = await getRedis();
     const [seen, events, subs] = await r.mget('seen', 'events', 'subs');
     return {
-      seen: seen ? JSON.parse(seen) : {},
-      events: events ? JSON.parse(events) : [],
-      subs: subs ? JSON.parse(subs) : []
+      seen: safeParse(seen, {}),
+      events: safeParse(events, []),
+      subs: safeParse(subs, [])
     };
   }
   return readDev();
