@@ -26,6 +26,13 @@ export default async function handler(req, res) {
     if (stale.length) {
       next.subs = next.subs.filter((s) => !stale.includes(s.endpoint));
     }
+    next.stats = {
+      lastTick: Date.now(),
+      lastAlerts: alerts.length,
+      lastRepeats: due.length,
+      subs: next.subs.length,
+      events: next.events.length
+    };
     await saveState(next);
     res.status(200).json({ ok: true, alerts: alerts.length, repeats: due.length, pending: pending.length, subs: next.subs.length });
   } catch (err) {

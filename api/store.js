@@ -58,17 +58,19 @@ function writeDev(state) {
 
 export async function getState() {
   if (IS_REDIS) {
-    const [seen, events, subs, pending] = await Promise.all([
+    const [seen, events, subs, pending, stats] = await Promise.all([
       kvGet('seen'),
       kvGet('events'),
       kvGet('subs'),
-      kvGet('pending')
+      kvGet('pending'),
+      kvGet('stats')
     ]);
     return {
       seen: safeParse(seen, {}),
       events: safeParse(events, []),
       subs: safeParse(subs, []),
-      pending: safeParse(pending, [])
+      pending: safeParse(pending, []),
+      stats: safeParse(stats, null)
     };
   }
   return readDev();
@@ -79,14 +81,16 @@ export async function saveState(state) {
     seen: state.seen || {},
     events: state.events || [],
     subs: state.subs || [],
-    pending: state.pending || []
+    pending: state.pending || [],
+    stats: state.stats || null
   };
   if (IS_REDIS) {
     await Promise.all([
       kvSet('seen', JSON.stringify(next.seen)),
       kvSet('events', JSON.stringify(next.events)),
       kvSet('subs', JSON.stringify(next.subs)),
-      kvSet('pending', JSON.stringify(next.pending))
+      kvSet('pending', JSON.stringify(next.pending)),
+      kvSet('stats', JSON.stringify(next.stats))
     ]);
   } else {
     writeDev(next);

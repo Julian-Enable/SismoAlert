@@ -22,7 +22,7 @@ export default async function handler(req, res) {
           const auth = 'Bearer ' + c.token;
           const ping = await fetch(c.url + '/ping', { headers: { Authorization: auth } });
           db.ping = ping.ok;
-          for (const k of ['seen', 'events', 'subs', 'pending']) {
+          for (const k of ['seen', 'events', 'subs', 'pending', 'stats']) {
             const r = await fetch(c.url + '/get/' + k, { headers: { Authorization: auth } });
             if (r.ok) {
               const data = await r.json();
@@ -53,6 +53,8 @@ export default async function handler(req, res) {
         pendingCount: Array.isArray(state.pending) ? state.pending.length : 'n/a',
         eventsCount: Array.isArray(state.events) ? state.events.length : 'n/a',
         subsCount: Array.isArray(state.subs) ? state.subs.length : 'n/a',
+        lastTick: state.stats ? state.stats.lastTick : null,
+        lastTickAgoSec: state.stats ? Math.round((Date.now() - state.stats.lastTick) / 1000) : null,
         seenSample: state.seen ? JSON.stringify(state.seen).slice(0, 100) : null,
         pendingSample: state.pending ? JSON.stringify(state.pending).slice(0, 120) : null,
         eventsSample: Array.isArray(state.events) ? JSON.stringify(state.events).slice(0, 150) : null
