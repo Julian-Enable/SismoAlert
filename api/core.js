@@ -71,6 +71,8 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
     if (seen[id].time && seen[id].time < limitSeen) delete seen[id];
   }
 
+  events.sort((a, b) => b.time - a.time);
+
   const pending = new Map((state.pending || []).map((p) => [p.id, p]));
   for (const r of repeats) pending.set(r.id, r);
 
