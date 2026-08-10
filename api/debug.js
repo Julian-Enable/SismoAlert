@@ -1,7 +1,10 @@
 import { getConfig } from './core.js';
+import { getState } from './store.js';
 
-const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
-const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const candidates = [
+  { name: 'KV_REST_API_*', url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN },
+  { name: 'UPSTASH_REDIS_REST_*', url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN }
+];
 
 export default async function handler(req, res) {
   const cfg = getConfig();
@@ -11,29 +14,48 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
   try {
-    const report = {
-      redisUrl: url,
-      redisConfigured: !!(url && token),
-      redisUp: false,
-      keys: {}
-    };
-    if (url && token) {
-      const auth = 'Bearer ' + token;
-      const ping = await fetch(url + '/ping', { headers: { Authorization: auth } });
-      report.redisUp = ping.ok;
-      for (const k of ['seen', 'events', 'subs']) {
-        const r = await fetch(url + '/get/' + k, { headers: { Authorization: auth } });
-        let raw = '';
-        if (r.ok) {
-          const data = await r.json();
-          raw = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
-        } else {
-          raw = 'HTTP ' + r.status;
+    const dbs = [];
+    for (const c of candidates) {
+      const db = { name: c.name, configured: !!(c.url && c.token), url: c.url || '', ping: false, keys: {} };
+      if (c.url && c.token) {
+        try {
+          const auth = 'Bearer ' + c.token;
+          const ping = await fetch(c.url + '/ping', { headers: { Authorization: auth } });
+          db.ping = ping.ok;
+          for (const k of ['seen', 'events', 'subs']) {
+            const r = await fetch(c.url + '/get/' + k, { headers: { Authorization: auth } });
+            if (r.ok) {
+              const data = await r.json();
+              const raw = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+              db.keys[k] = { len: raw.length, preview: raw.slice(0, 80) };
+            } else {
+              db.keys[k] = { error: 'HTTP ' + r.status };
+            }
+          }
+        } catch (err) {
+          db.error = String(err?.message || err);
         }
-        report.keys[k] = { len: raw.length, preview: raw.slice(0, 120) };
       }
+      dbs.push(db);
     }
-    res.status(200).json(report);
+
+    let state = null;
+    try {
+      state = await getState();
+    } catch (err) {
+      state = { error: String(err?.message || err) };
+    }
+
+    res.status(200).json({
+      dbs,
+      getState: {
+        seenKeys: state.seen ? Object.keys(state.seen).length : 0,
+        eventsCount: Array.isArray(state.events) ? state.events.length : 'n/a',
+        subsCount: Array.isArray(state.subs) ? state.subs.length : 'n/a',
+        seenSample: state.seen ? JSON.stringify(state.seen).slice(0, 100) : null,
+        eventsSample: Array.isArray(state.events) ? JSON.stringify(state.events).slice(0, 150) : null
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: String(err?.message || err) });
   }
