@@ -49,7 +49,11 @@ function safeParse(v, fallback) {
 export async function getState() {
   if (IS_REDIS) {
     const r = await getRedis();
-    const [seen, events, subs] = await r.mget('seen', 'events', 'subs');
+    const [seen, events, subs] = await Promise.all([
+      r.get('seen'),
+      r.get('events'),
+      r.get('subs')
+    ]);
     return {
       seen: safeParse(seen, {}),
       events: safeParse(events, []),
