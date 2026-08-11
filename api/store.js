@@ -37,16 +37,25 @@ export async function tryAcquireTickLock(ttlSec = 55) {
   const pipeline = async (cmds) => {
     const r = await fetch(`${REST_URL}/pipeline`, { method: 'POST', headers: { ...authH, 'Content-Type': 'application/json' }, body: JSON.stringify(cmds) });
     if (!r.ok) throw new Error('KV LOCK ' + r.status + ' ' + (await r.text()).slice(0, 200));
-    return JSON.parse(await r.text());
+    return r.json();
+  };
+  const readLock = async () => {
+    const r = await fetch(`${REST_URL}/get/lock_tick`, { headers: authH });
+    if (!r.ok) throw new Error('KV GET ' + r.status);
+    const data = await r.json();
+    let value = data?.result ?? null;
+    if (typeof value === 'string' && value.startsWith('~')) {
+      value = Buffer.from(value.slice(1), 'base64').toString('utf8');
+    }
+    return value;
   };
   const trySet = async () => {
-    const d = await pipeline([['SET', 'lock_tick', mine, 'NX', 'EX', String(ttlSec)]]);
-    return d && d[0] === 'OK';
+    await pipeline([['SET', 'lock_tick', mine, 'NX', 'EX', String(ttlSec)]]);
+    const now = await readLock();
+    return typeof now === 'string' && now === mine;
   };
   if (await trySet()) return true;
-  const g = await fetch(`${REST_URL}/get/lock_tick`, { headers: authH });
-  const gd = await g.json();
-  const heldSince = typeof gd?.result === 'string' ? Number(gd.result) : NaN;
+  const heldSince = Number(await readLock());
   if (Number.isFinite(heldSince) && heldSince > 0 && Date.now() - heldSince > 45000) {
     await pipeline([['DEL', 'lock_tick']]);
     return trySet();
