@@ -1,0 +1,17 @@
+name: SismoAlert tick (respaldo)
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al cron de SismoAlert
+        run: |
+          code=$(curl -s -o /tmp/sa_tick.json -w "%{http_code}" "https://sismo-alert-pied.vercel.app/api/cron?secret=${{ secrets.SISMALERT_CRON_SECRET }}")
+          echo "HTTP $code"
+          cat /tmp/sa_tick.json
+          [ "$code" = "200" ] || exit 1
