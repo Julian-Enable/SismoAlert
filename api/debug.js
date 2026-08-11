@@ -22,7 +22,7 @@ export default async function handler(req, res) {
           const auth = 'Bearer ' + c.token;
           const ping = await fetch(c.url + '/ping', { headers: { Authorization: auth } });
           db.ping = ping.ok;
-          for (const k of ['seen', 'events', 'subs', 'pending', 'stats']) {
+          for (const k of ['seen', 'events', 'subs', 'pending', 'stats', 'lock_tick']) {
             const r = await fetch(c.url + '/get/' + k, { headers: { Authorization: auth } });
             if (r.ok) {
               const data = await r.json();
