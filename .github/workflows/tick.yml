@@ -5,13 +5,60 @@ on:
     - cron: "*/10 * * * *"
   workflow_dispatch:
 
+concurrency:
+  group: sismoalert-tick
+  cancel-in-progress: false
+
 jobs:
   tick:
     runs-on: ubuntu-latest
     steps:
       - name: Llamar al cron de SismoAlert
+        env:
+          CRON_SECRET: ${{ secrets.SISMOALERT_CRON_SECRET }}
         run: |
-          code=$(curl -s -o /tmp/sa_tick.json -w "%{http_code}" "https://sismo-alert-pied.vercel.app/api/cron?secret=${{ secrets.SISMALERT_CRON_SECRET }}")
+          set -uo pipefail
+
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::El secret SISMOALERT_CRON_SECRET no existe o esta vacio. Revisa Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          code=$(curl -sS --max-time 60 --retry 2 --retry-delay 5 \
+            -o /tmp/sa_tick.json -w "%{http_code}" \
+            -G --data-urlencode "secret=$CRON_SECRET" \
+            "https://sismo-alert-pied.vercel.app/api/cron")
+
           echo "HTTP $code"
           cat /tmp/sa_tick.json
-          [ "$code" = "200" ] || exit 1
+          echo
+
+          case "$code" in
+            200)
+              echo "::notice::Tick OK"
+              ;;
+            401)
+              echo "::error::401: el deployment tiene Deployment Protection activa en Vercel."
+              exit 1
+              ;;
+            403)
+              echo "::error::403 Secreto invalido: CRON_SECRET no coincide entre el secret de GitHub y la variable de entorno de Vercel."
+              exit 1
+              ;;
+            404)
+              echo "::error::404: la ruta /api/cron no existe en ese dominio. Verifica la URL del proyecto en Vercel."
+              exit 1
+              ;;
+            500)
+              echo "::error::500: fallo el handler. Revisa el JSON de arriba y los logs de la funcion en Vercel (suele ser Upstash/Redis)."
+              exit 1
+              ;;
+            000)
+              echo "::error::Sin respuesta (timeout o fallo de red al contactar el dominio)."
+              exit 1
+              ;;
+            *)
+              echo "::error::HTTP $code inesperado."
+              exit 1
+              ;;
+          esac
