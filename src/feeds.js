@@ -16,7 +16,7 @@ const norm = (id, source, f) => {
     lon,
     depth: depth ?? null,
     place: (p.place || flynn(p.flynn_region) || `${source} reportado`).replace(/^\s*M\d[\d.]*\s+/, ''),
-    url: p.url || p.sources?.indexOf('us') >= 0 ? p.url || '' : p.url || ''
+    url: p.url || ''
   };
 };
 

@@ -19,7 +19,7 @@ function buildNotification(e, repeat = 0) {
     : `SISMO M${e.mag} - ${place}`;
   const prefix = repeat > 0 ? `REPITE ${repeat}: ` : '';
   const body = `MAGNITUD ${e.mag} en ${place}. Fuente: ${e.source} | Prof. ${e.depth ?? 'n/d'} km | ${new Date(e.time).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}. Agarrate ya.`;
-  return { title: prefix + title, body, tag: `${e.id}#r${repeat}`, data: { repeat, url: e.url || '/' } };
+  return { title: prefix + title, body, tag: `${e.id}#r${repeat}`, url: e.url || '/', data: { repeat, url: e.url || '/' } };
 }
 
 export async function broadcast(event, subs, { repeat = 0 } = {}) {
