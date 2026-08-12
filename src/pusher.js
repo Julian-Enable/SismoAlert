@@ -1,8 +1,9 @@
 import webpush from 'web-push';
 
 export function createPusher({ store, config, log = console }) {
-  const ready = config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY;
+  const ready = !!(config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY);
   if (!ready) log.warn('[pusher] faltan VAPID keys, push deshabilitado');
+  else webpush.setVapidDetails(config.VAPID_SUBJECT, config.VAPID_PUBLIC_KEY, config.VAPID_PRIVATE_KEY);
 
   return {
     ready,
