@@ -22,7 +22,7 @@ export default async function handler(req, res) {
           const auth = 'Bearer ' + c.token;
           const ping = await fetch(c.url + '/ping', { headers: { Authorization: auth } });
           db.ping = ping.ok;
-          for (const k of ['seen', 'events', 'subs', 'pending', 'stats', 'lock_tick']) {
+          for (const k of ['state', 'lock_tick']) {
             const r = await fetch(c.url + '/get/' + k, { headers: { Authorization: auth } });
             if (r.ok) {
               const data = await r.json();
@@ -58,6 +58,7 @@ export default async function handler(req, res) {
         lastAlerts: state.stats ? state.stats.lastAlerts : null,
         lastEvents: state.stats ? state.stats.events : null,
         lastError: state.stats ? state.stats.lastError || null : null,
+        alertedCount: Array.isArray(state.alerted) ? state.alerted.length : 'n/a',
         trace: state.stats ? state.stats.trace || null : null,
         seenSample: state.seen ? JSON.stringify(state.seen).slice(0, 100) : null,
         pendingSample: state.pending ? JSON.stringify(state.pending).slice(0, 120) : null,

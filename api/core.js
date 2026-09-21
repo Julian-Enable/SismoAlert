@@ -6,6 +6,17 @@ const COLOMBIA_RINGS = colombia.features[0].geometry.coordinates;
 const CARIBBEAN = { minLat: 11.0, maxLat: 14.0, minLon: -82.4, maxLon: -71.5 };
 const PACIFIC = { minLat: 1.3, maxLat: 8.0, minLon: -82.5, maxLon: -75.5 };
 
+// El SGC es la red local: llega primero y su solucion manda sobre las globales.
+const SOURCE_RANK = { SGC: 3, USGS: 2, EMSC: 1, TEST: 0 };
+
+// Dos soluciones son del mismo sismo si coinciden en tiempo y epicentro.
+// Calibrado con el historial: los pares USGS/EMSC reales quedaron en <=6 s y <=51 km,
+// y el sismo distinto mas cercano en tiempo (60 s) estaba a 481 km. El margen de 90 s
+// absorbe que el SGC publique la hora truncada al minuto.
+const SAME_QUAKE_MS = 90 * 1000;
+const SAME_QUAKE_KM = 150;
+const ALERTED_TTL_MS = 12 * 3600 * 1000;
+
 function pointInRings(lon, lat) {
   for (const ring of COLOMBIA_RINGS) {
     let inside = false;
@@ -19,13 +30,27 @@ function pointInRings(lon, lat) {
   return false;
 }
 
+function distKm(aLat, aLon, bLat, bLon) {
+  const rad = (d) => (d * Math.PI) / 180;
+  const h =
+    Math.sin(rad(bLat - aLat) / 2) ** 2 +
+    Math.cos(rad(aLat)) * Math.cos(rad(bLat)) * Math.sin(rad(bLon - aLon) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+export function isSameQuake(a, b) {
+  if (!a || !b) return false;
+  if (Math.abs(a.time - b.time) > SAME_QUAKE_MS) return false;
+  return distKm(a.lat, a.lon, b.lat, b.lon) <= SAME_QUAKE_KM;
+}
+
 export function getConfig() {
   return config;
 }
 
-export async function fetchAllFeeds(includeSgc = false) {
+export async function fetchAllFeeds(includeSgc = config.USE_SGC) {
   const fetches = [fetchUsgs(), fetchEmsc()];
-  if (includeSgc && config.SGC_API_URL) fetches.push(fetchSgc(config.SGC_API_URL));
+  if (includeSgc) fetches.push(fetchSgc(config.SGC_FEED_URL));
   const results = await Promise.allSettled(fetches);
   const all = [];
   const errors = [];
@@ -51,18 +76,27 @@ export function qualifies(e, cfg) {
   return inRegion(e, cfg) && e.mag >= cfg.MIN_MAG;
 }
 
-export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 60 * 1000 } = {}) {
+export async function runTick(state, cfg, { includeSgc = cfg.USE_SGC, freshMs = 90 * 60 * 1000 } = {}) {
   const { events: all, errors } = await fetchAllFeeds(includeSgc);
   const seen = { ...state.seen };
   const events = [...state.events];
   const alerts = [];
   const now = Date.now();
-  const seenIds = new Set();
   const repeats = [];
   const limitSeen = now - 7 * 24 * 3600 * 1000;
-  const trace = { all: all.length, region: 0, display: 0, inserted: 0, feedErr: errors };
+  const bySource = {};
+  const trace = { all: all.length, region: 0, display: 0, inserted: 0, merged: 0, deduped: 0, bySource, feedErr: errors };
+  for (const e of all) bySource[e.source] = (bySource[e.source] || 0) + 1;
 
-  for (const e of all) {
+  // Sismos ya avisados, para no repetir cuando otra red publica el mismo evento mas tarde.
+  const alerted = (state.alerted || []).filter((a) => now - (a.at || 0) < ALERTED_TTL_MS);
+
+  // El SGC primero: si el mismo sismo llega por varias redes, la fila la manda la red local.
+  const candidates = all
+    .slice()
+    .sort((a, b) => (SOURCE_RANK[b.source] ?? 0) - (SOURCE_RANK[a.source] ?? 0) || b.time - a.time);
+
+  for (const e of candidates) {
     if (!inRegion(e, cfg)) continue;
     trace.region++;
     if (e.mag === null || e.mag === undefined) continue;
@@ -77,16 +111,41 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
     seen[e.id] = { mag: e.mag, time: e.time };
 
     const event = { ...e, upgraded, status: upgraded ? 'actualizado' : 'nuevo', prevMag: prev?.mag, alertTime: now };
-    if (!seenIds.has(e.id)) {
-      seenIds.add(e.id);
-      events.unshift(event);
+
+    // Una sola fila por sismo fisico: se queda la de la fuente de mayor rango.
+    const twinIdx = events.findIndex((x) => isSameQuake(x, e));
+    if (twinIdx === -1) {
+      events.unshift({ ...event, sources: [e.source] });
       trace.inserted++;
-      if (events.length > 200) events.length = 200;
+    } else {
+      const twin = events[twinIdx];
+      const sources = Array.from(new Set([...(twin.sources || [twin.source]), e.source]));
+      const better = (SOURCE_RANK[e.source] ?? 0) >= (SOURCE_RANK[twin.source] ?? 0);
+      events[twinIdx] = better
+        ? { ...twin, ...event, sources, alertTime: twin.alertTime ?? now, status: twin.status }
+        : { ...twin, sources };
+      trace.merged++;
     }
+
     if (e.mag >= cfg.MIN_MAG && now - e.time <= freshMs) {
-      alerts.push({ ...event, alertTime: now });
+      const already = alerted.find((a) => isSameQuake(a, e));
+      if (already && e.mag < (already.mag ?? 0) + 0.5) {
+        trace.deduped++;
+        continue;
+      }
+      let alert;
+      if (already) {
+        // Otra red lo subio medio grado o mas: vale avisar la correccion.
+        alert = { ...event, upgraded: true, status: 'actualizado', prevMag: already.mag, alertTime: now };
+        already.mag = e.mag;
+        already.at = now;
+      } else {
+        alerted.push({ time: e.time, lat: e.lat, lon: e.lon, mag: e.mag, source: e.source, at: now });
+        alert = { ...event, alertTime: now };
+      }
+      alerts.push(alert);
       if (e.mag >= cfg.RESEND_MIN_MAG) {
-        repeats.push({ id: e.id, sends: cfg.RESEND_TIMES - 1, n: 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
+        repeats.push({ id: e.id, event: alert, sends: cfg.RESEND_TIMES - 1, n: 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
       }
     }
   }
@@ -95,13 +154,16 @@ export async function runTick(state, cfg, { includeSgc = false, freshMs = 90 * 6
     if (seen[id].time && seen[id].time < limitSeen) delete seen[id];
   }
 
+  // Primero ordenar y despues recortar: al reves se descartaban los sismos mas
+  // recientes cuando un tick trae mas de 200 eventos (el SGC solo aporta ~340).
   events.sort((a, b) => b.time - a.time);
+  if (events.length > 200) events.length = 200;
 
   const pending = new Map((state.pending || []).map((p) => [p.id, p]));
   for (const r of repeats) pending.set(r.id, r);
 
   return {
-    next: { seen, events, subs: state.subs, pending: Array.from(pending.values()) },
+    next: { seen, events, subs: state.subs, pending: Array.from(pending.values()), alerted },
     alerts,
     trace
   };
@@ -114,7 +176,7 @@ export function dueRepeats(state, cfg) {
   for (const p of state.pending || []) {
     if (p.sends > 0) {
       if (now >= p.nextAt) {
-        const ev = (state.events || []).find((e) => e.id === p.id);
+        const ev = p.event || (state.events || []).find((e) => e.id === p.id);
         if (ev) due.push({ event: ev, repeat: p.n });
         const left = p.sends - 1;
         if (left > 0) pending.push({ ...p, sends: left, n: (p.n || 1) + 1, nextAt: now + cfg.RESEND_INTERVAL_MS });
@@ -144,7 +206,8 @@ export function markTestEvent(state, { mag = 5.0, place = 'Bogota (SIMULACRO)' }
   const next = {
     seen: { ...state.seen, [event.id]: { mag, time: now } },
     events: [event, ...state.events].slice(0, 200),
-    subs: state.subs
+    subs: state.subs,
+    alerted: state.alerted || []
   };
   return { next, event };
 }

@@ -15,7 +15,7 @@ export function createPoller({ store, onEvent, config, log = console }) {
     const feeds = [];
     feeds.push(fetchUsgs());
     feeds.push(fetchEmsc());
-    if (config.SGC_API_URL) feeds.push(fetchSgc(config.SGC_API_URL));
+    if (config.USE_SGC) feeds.push(fetchSgc(config.SGC_FEED_URL));
     const results = await Promise.allSettled(feeds);
     const all = [];
     for (const r of results) {

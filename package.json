@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start:local": "node src/server.js",
-    "test-local": "node scripts/test-local.js"
+    "test-local": "node scripts/test-local.js",
+    "test": "node scripts/test-dedupe.mjs && node scripts/test-store.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.34.0",

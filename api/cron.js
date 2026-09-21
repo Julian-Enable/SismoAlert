@@ -49,10 +49,11 @@ next.stats = {
         subs: next.subs.length,
         events: next.events.length,
         seen: Object.keys(next.seen).length,
+        alerted: (next.alerted || []).length,
         trace
       };
     await saveState(next);
-    res.status(200).json({ ok: true, alerts: alerts.length, repeats: due.length, pending: pending.length, subs: next.subs.length, events: next.events.length });
+    res.status(200).json({ ok: true, alerts: alerts.length, repeats: due.length, pending: pending.length, subs: next.subs.length, events: next.events.length, trace });
   } catch (err) {
     try {
       const st = await getState();

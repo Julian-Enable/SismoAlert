@@ -90,6 +90,11 @@ function hideOverlay() {
   try { localStorage.setItem('sa_skip_install', '1'); } catch {}
 }
 
+function sourceText(e) {
+  const list = Array.isArray(e.sources) && e.sources.length ? e.sources : [e.source];
+  return list.filter(Boolean).join(' + ') || 'n/d';
+}
+
 function renderLast(events) {
   const empty = $('#lastEmpty');
   const content = $('#lastContent');
@@ -124,7 +129,7 @@ function renderLast(events) {
   meta.innerHTML = '';
   const parts = [
     'Prof. ' + (ev.depth ?? 'n/d') + ' km',
-    'Fuente ' + (ev.source || 'n/d'),
+    'Fuente ' + sourceText(ev),
     ev.lat !== undefined && ev.lon !== undefined ? ev.lat.toFixed(2) + ', ' + ev.lon.toFixed(2) : null,
     dateStr(ev.time)
   ];
@@ -148,7 +153,7 @@ function evItem(e) {
     '<div class="rail" style="background:' + color + '"></div>' +
     '<div><div><span class="mag" style="color:' + color + '">M' + mag + '</span> ' + tag + test +
     '<span class="place">' + (e.place || '?') + '</span></div>' +
-    '<div class="meta">' + dateStr(e.time) + ' | ' + (e.source || 'n/d') + '</div></div>' +
+    '<div class="meta">' + dateStr(e.time) + ' | ' + sourceText(e) + '</div></div>' +
     '<div class="ago">' + agoText(e.time) + '</div>';
   return el;
 }

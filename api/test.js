@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
   if (req.query?.action === 'reset') {
     const state = await getState();
-    await saveState({ ...state, seen: {}, events: [], pending: [] });
+    await saveState({ ...state, seen: {}, events: [], pending: [], alerted: [] });
     return res.status(200).json({ ok: true, reset: true });
   }
 

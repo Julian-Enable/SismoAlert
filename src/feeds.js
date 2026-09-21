@@ -1,5 +1,10 @@
 const USGS_FEED = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
 const EMSC_FEED = 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=200';
+const SGC_FEED = 'https://archive.sgc.gov.co/feed/v1.0.1/summary/five_days_2.json';
+
+// El feed del SGC vive detras de CloudFront con WAF: solo responde a un User-Agent de navegador.
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 const norm = (id, source, f) => {
   const p = f.properties || {};
@@ -20,11 +25,14 @@ const norm = (id, source, f) => {
   };
 };
 
-async function fetchJson(url) {
+async function fetchJson(url, headers = {}) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 15000);
   try {
-    const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'SismoAlert/0.1 (+aviso sismico Colombia)' } });
+    const r = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { 'User-Agent': 'SismoAlert/0.1 (+aviso sismico Colombia)', ...headers }
+    });
     if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
     return await r.json();
   } finally {
@@ -46,39 +54,41 @@ export async function fetchEmsc() {
     .filter(Boolean);
 }
 
-export async function fetchSgc(apiUrl) {
-  if (!apiUrl) throw new Error('SGC_API_URL no configurada');
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 15000);
-  try {
-    const r = await fetch(`${apiUrl.replace(/\/$/, '')}/api/events/search/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ page: 1, page_size: 50 }),
-      signal: ctrl.signal
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    const items = j.results || j.events || j.data || [];
-    return items
-      .map((e) => {
-        const lat = Number(e.latitud ?? e.lat ?? e.latitude);
-        const lon = Number(e.longitud ?? e.lon ?? e.longitude);
-        if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
-        return {
-          id: `sgc:${e.id ?? e.event_id ?? e.pk}`,
-          source: 'SGC',
-          time: new Date(e.fecha_local ?? e.time ?? e.fecha).getTime(),
-          mag: Number(e.magnitud ?? e.mag ?? e.magnitude) || null,
-          lat,
-          lon,
-          depth: e.profundidad ?? e.depth ?? null,
-          place: e.municipio ? `${e.municipio}, ${e.departamento || ''}`.trim() : e.lugar || 'Colombia',
-          url: 'https://sgc.gov.co/sismos'
-        };
-      })
-      .filter(Boolean);
-  } finally {
-    clearTimeout(t);
-  }
+// El SGC entrega "2026-09-21 19:12" (UTC, truncado al minuto).
+function sgcTime(value) {
+  if (!value) return NaN;
+  const iso = String(value).trim().replace(' ', 'T');
+  return Date.parse(/T\d{2}:\d{2}$/.test(iso) ? `${iso}:00Z` : `${iso}Z`);
+}
+
+// Red Sismologica Nacional del SGC: localiza con estaciones locales, asi que publica
+// los sismos de Colombia mucho antes que USGS o EMSC.
+export async function fetchSgc(feedUrl = SGC_FEED) {
+  const geo = await fetchJson(feedUrl || SGC_FEED, {
+    'User-Agent': BROWSER_UA,
+    Accept: 'application/json, text/plain, */*',
+    Referer: 'https://www.sgc.gov.co/'
+  });
+  return (geo.features || [])
+    .map((f) => {
+      const p = f.properties || {};
+      // Ojo: este feed invierte el orden GeoJSON, entrega [lat, lon, profundidad].
+      const [lat, lon, depth] = (f.geometry && f.geometry.coordinates) || [];
+      const time = sgcTime(p.utcTime);
+      if (lat === undefined || lon === undefined || !Number.isFinite(time)) return null;
+      const mag = Number(p.mag);
+      return {
+        id: `sgc:${f.id}`,
+        source: 'SGC',
+        time,
+        mag: Number.isFinite(mag) ? mag : null,
+        lat: Number(lat),
+        lon: Number(lon),
+        depth: depth ?? null,
+        place: p.place || 'Colombia',
+        url: f.id ? `https://www.sgc.gov.co/detalleevento/${f.id}/resumen` : 'https://www.sgc.gov.co/sismos',
+        preliminary: p.status === 'automatic'
+      };
+    })
+    .filter(Boolean);
 }

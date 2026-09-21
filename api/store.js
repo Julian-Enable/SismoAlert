@@ -85,7 +85,7 @@ function readDev() {
   try {
     return JSON.parse(readFileSync(DEV_FILE, 'utf8'));
   } catch {
-    return { seen: {}, events: [], subs: [] };
+    return { seen: {}, events: [], subs: [], pending: [], alerted: [] };
   }
 }
 
@@ -94,43 +94,43 @@ function writeDev(state) {
   writeFileSync(DEV_FILE, JSON.stringify(state));
 }
 
+// Todo el estado vive en una sola clave: antes eran 6 GET + 6 SET por minuto
+// (~518k comandos/mes, por encima del tier gratis de Upstash) y una escritura
+// parcial podia dejar el estado descuadrado. Ahora son 2 comandos y es atomico.
+const STATE_KEY = 'state';
+const LEGACY_KEYS = ['seen', 'events', 'subs', 'pending', 'alerted', 'stats'];
+
+function normalize(state) {
+  const s = state || {};
+  return {
+    seen: s.seen && typeof s.seen === 'object' ? s.seen : {},
+    events: Array.isArray(s.events) ? s.events : [],
+    subs: Array.isArray(s.subs) ? s.subs : [],
+    pending: Array.isArray(s.pending) ? s.pending : [],
+    alerted: Array.isArray(s.alerted) ? s.alerted : [],
+    stats: s.stats || null
+  };
+}
+
 export async function getState() {
-  if (IS_REDIS) {
-    const [seen, events, subs, pending, stats] = await Promise.all([
-      kvGet('seen'),
-      kvGet('events'),
-      kvGet('subs'),
-      kvGet('pending'),
-      kvGet('stats')
-    ]);
-    return {
-      seen: safeParse(seen, {}),
-      events: safeParse(events, []),
-      subs: safeParse(subs, []),
-      pending: safeParse(pending, []),
-      stats: safeParse(stats, null)
-    };
-  }
-  return readDev();
+  if (!IS_REDIS) return normalize(readDev());
+  const parsed = safeParse(await kvGet(STATE_KEY), null);
+  if (parsed) return normalize(parsed);
+  // Primer arranque tras el cambio: rescatar el estado de las claves antiguas
+  // para no perder las suscripciones ya registradas.
+  const [seen, events, subs, pending, alerted, stats] = await Promise.all(LEGACY_KEYS.map(kvGet));
+  return normalize({
+    seen: safeParse(seen, {}),
+    events: safeParse(events, []),
+    subs: safeParse(subs, []),
+    pending: safeParse(pending, []),
+    alerted: safeParse(alerted, []),
+    stats: safeParse(stats, null)
+  });
 }
 
 export async function saveState(state) {
-  const next = {
-    seen: state.seen || {},
-    events: state.events || [],
-    subs: state.subs || [],
-    pending: state.pending || [],
-    stats: state.stats || null
-  };
-  if (IS_REDIS) {
-    await Promise.all([
-      kvSet('seen', JSON.stringify(next.seen)),
-      kvSet('events', JSON.stringify(next.events)),
-      kvSet('subs', JSON.stringify(next.subs)),
-      kvSet('pending', JSON.stringify(next.pending)),
-      kvSet('stats', JSON.stringify(next.stats))
-    ]);
-  } else {
-    writeDev(next);
-  }
+  const next = normalize(state);
+  if (IS_REDIS) await kvSet(STATE_KEY, JSON.stringify(next));
+  else writeDev(next);
 }
