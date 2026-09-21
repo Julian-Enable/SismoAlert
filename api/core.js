@@ -11,9 +11,11 @@ const SOURCE_RANK = { SGC: 3, USGS: 2, EMSC: 1, TEST: 0 };
 
 // Dos soluciones son del mismo sismo si coinciden en tiempo y epicentro.
 // Calibrado con el historial: los pares USGS/EMSC reales quedaron en <=6 s y <=51 km,
-// y el sismo distinto mas cercano en tiempo (60 s) estaba a 481 km. El margen de 90 s
-// absorbe que el SGC publique la hora truncada al minuto.
-const SAME_QUAKE_MS = 90 * 1000;
+// y el sismo distinto mas cercano en tiempo (60 s) estaba a 481 km. La ventana de 75 s
+// cubre los 60 s que puede perder el SGC al truncar la hora al minuto mas el desfase
+// entre redes; conviene no alargarla porque en un enjambre (Chaparral) dos replicas
+// distintas caen casi en el mismo epicentro y solo el tiempo las separa.
+const SAME_QUAKE_MS = 75 * 1000;
 const SAME_QUAKE_KM = 150;
 const ALERTED_TTL_MS = 12 * 3600 * 1000;
 
@@ -36,6 +38,24 @@ function distKm(aLat, aLon, bLat, bLon) {
     Math.sin(rad(bLat - aLat) / 2) ** 2 +
     Math.cos(rad(aLat)) * Math.cos(rad(bLat)) * Math.sin(rad(bLon - aLon) / 2) ** 2;
   return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+// Une dos filas del mismo sismo: manda la solucion de la red de mayor rango, se
+// juntan las redes que lo reportaron y se conserva el primer aviso, que es la
+// marca honesta de cuando lo detectamos.
+function mergeRow(twin, row) {
+  const sources = Array.from(
+    new Set([...(twin.sources || [twin.source]), ...(row.sources || [row.source])])
+  ).filter(Boolean);
+  const alertTime = Math.min(twin.alertTime ?? Infinity, row.alertTime ?? Infinity);
+  const better = (SOURCE_RANK[row.source] ?? 0) >= (SOURCE_RANK[twin.source] ?? 0);
+  const base = better ? { ...twin, ...row } : { ...twin };
+  return {
+    ...base,
+    sources,
+    alertTime: Number.isFinite(alertTime) ? alertTime : Date.now(),
+    status: twin.status || base.status
+  };
 }
 
 export function isSameQuake(a, b) {
@@ -79,14 +99,27 @@ export function qualifies(e, cfg) {
 export async function runTick(state, cfg, { includeSgc = cfg.USE_SGC, freshMs = 90 * 60 * 1000 } = {}) {
   const { events: all, errors } = await fetchAllFeeds(includeSgc);
   const seen = { ...state.seen };
-  const events = [...state.events];
   const alerts = [];
   const now = Date.now();
   const repeats = [];
   const limitSeen = now - 7 * 24 * 3600 * 1000;
   const bySource = {};
-  const trace = { all: all.length, region: 0, display: 0, inserted: 0, merged: 0, deduped: 0, bySource, feedErr: errors };
+  const trace = { all: all.length, region: 0, display: 0, inserted: 0, merged: 0, compacted: 0, deduped: 0, bySource, feedErr: errors };
   for (const e of all) bySource[e.source] = (bySource[e.source] || 0) + 1;
+
+  // Compacta el historial guardado: la version anterior creaba una fila por red,
+  // asi que puede traer varias filas del mismo sismo. Tambien vale de red de
+  // seguridad si alguna vez se cuela un duplicado.
+  const events = [];
+  for (const row of state.events || []) {
+    const twinIdx = events.findIndex((x) => isSameQuake(x, row));
+    if (twinIdx === -1) {
+      events.push({ ...row, sources: row.sources || [row.source] });
+      continue;
+    }
+    events[twinIdx] = mergeRow(events[twinIdx], row);
+    trace.compacted++;
+  }
 
   // Sismos ya avisados, para no repetir cuando otra red publica el mismo evento mas tarde.
   const alerted = (state.alerted || []).filter((a) => now - (a.at || 0) < ALERTED_TTL_MS);
@@ -118,12 +151,7 @@ export async function runTick(state, cfg, { includeSgc = cfg.USE_SGC, freshMs = 
       events.unshift({ ...event, sources: [e.source] });
       trace.inserted++;
     } else {
-      const twin = events[twinIdx];
-      const sources = Array.from(new Set([...(twin.sources || [twin.source]), e.source]));
-      const better = (SOURCE_RANK[e.source] ?? 0) >= (SOURCE_RANK[twin.source] ?? 0);
-      events[twinIdx] = better
-        ? { ...twin, ...event, sources, alertTime: twin.alertTime ?? now, status: twin.status }
-        : { ...twin, sources };
+      events[twinIdx] = mergeRow(events[twinIdx], { ...event, sources: [e.source] });
       trace.merged++;
     }
 

@@ -27,7 +27,8 @@ const sgc = (id, time, mag, lat, lon, status = 'automatic') => ({
   geometry: { coordinates: [lat, lon, 30] } // el SGC invierte el orden
 });
 
-const T = now - 3 * 60 * 1000; // sismo hace 3 minutos
+// Alineado al minuto para que la prueba no dependa del segundo en que se ejecuta.
+const T = Math.floor((now - 3 * 60 * 1000) / 60000) * 60000; // sismo hace ~3 minutos
 let fails = 0;
 const check = (label, cond, extra = '') => {
   console.log(`${cond ? 'OK  ' : 'FALLA'} ${label}${extra ? ' -> ' + extra : ''}`);
@@ -44,8 +45,8 @@ let state = r.next;
 
 // --- Caso 2: 30 min despues llegan USGS y EMSC con el mismo sismo: no debe repetir ---
 feeds = {
-  usgs: [global('us1', T + 40000, 4.7, 3.88, -75.7)],
-  emsc: [global('em1', T + 35000, 4.6, 3.9, -75.5)],
+  usgs: [global('us1', T + 6000, 4.7, 3.88, -75.7)],
+  emsc: [global('em1', T - 4000, 4.6, 3.9, -75.5)],
   sgc: [sgc('SGC2026aaa', T, 4.5, 3.85, -75.63, 'manual')]
 };
 r = await runTick(state, cfg);
@@ -56,14 +57,14 @@ check('2. la fila lista las 3 redes', (r.next.events[0].sources || []).length ==
 state = r.next;
 
 // --- Caso 3: una red corrige la magnitud medio grado arriba: si avisa ---
-feeds = { usgs: [global('us2', T + 40000, 5.3, 3.88, -75.7)], emsc: [], sgc: [] };
+feeds = { usgs: [global('us2', T + 6000, 5.3, 3.88, -75.7)], emsc: [], sgc: [] };
 r = await runTick(state, cfg);
 check('3. correccion de M5.3 si avisa', r.alerts.length === 1 && r.alerts[0].status === 'actualizado', `alerts=${r.alerts.length}`);
 check('3. no crea fila nueva', r.next.events.length === 1, `filas=${r.next.events.length}`);
 state = r.next;
 
 // --- Caso 4: un sismo distinto y lejano si es un aviso aparte ---
-feeds = { usgs: [global('us3', T + 60000, 5.0, 10.5, -73.2)], emsc: [], sgc: [] };
+feeds = { usgs: [global('us3', T + 6000, 5.0, 10.5, -73.2)], emsc: [], sgc: [] };
 r = await runTick(state, cfg);
 check('4. sismo distinto avisa aparte', r.alerts.length === 1 && r.next.events.length === 2, `alerts=${r.alerts.length} filas=${r.next.events.length}`);
 
@@ -72,11 +73,30 @@ const A = { time: T, lat: 3.85, lon: -75.63 };
 check('5. par real USGS/EMSC (6 s, 51 km) = mismo', isSameQuake(A, { time: T + 6000, lat: 4.31, lon: -75.63 }));
 check('5. hora truncada al minuto (59 s) = mismo', isSameQuake(A, { time: T + 59000, lat: 3.85, lon: -75.63 }));
 check('5. sismo distinto (60 s, 481 km) = distinto', !isSameQuake(A, { time: T + 60000, lat: 8.18, lon: -75.63 }));
+check('5. replica del enjambre a 80 s = distinto', !isSameQuake(A, { time: T + 80000, lat: 3.85, lon: -75.63 }));
 
 // --- Caso 6: sismo viejo del feed no debe avisar ---
 feeds = { usgs: [], emsc: [], sgc: [sgc('SGC2026old', now - 5 * 3600 * 1000, 5.5, 4.2, -76.1)] };
 r = await runTick({ seen: {}, events: [], subs: [], pending: [], alerted: [] }, cfg);
 check('6. sismo de hace 5 h no avisa', r.alerts.length === 0, `alerts=${r.alerts.length}`);
+
+// --- Caso 7: compacta las filas duplicadas que dejo la version anterior ---
+feeds = { usgs: [], emsc: [], sgc: [] };
+const legado = {
+  seen: { 'usgs:v1': { mag: 4.5, time: T }, 'emsc:v1': { mag: 4.5, time: T } },
+  events: [
+    { id: 'usgs:v1', source: 'USGS', time: T + 2000, mag: 4.5, lat: 3.88, lon: -75.7, place: 'USGS zona', alertTime: T + 9e5 },
+    { id: 'emsc:v1', source: 'EMSC', time: T, mag: 4.5, lat: 3.85, lon: -75.63, place: 'Colombia', alertTime: T + 6e5 }
+  ],
+  subs: [],
+  pending: [],
+  alerted: []
+};
+r = await runTick(legado, cfg);
+check('7. compacta filas viejas duplicadas', r.next.events.length === 1, `filas=${r.next.events.length} compacted=${r.trace.compacted}`);
+check('7. junta las redes de las filas viejas', (r.next.events[0].sources || []).slice().sort().join('+') === 'EMSC+USGS', JSON.stringify(r.next.events[0].sources));
+check('7. conserva el primer aviso', r.next.events[0].alertTime === T + 6e5, String(r.next.events[0].alertTime - T));
+check('7. compactar no dispara avisos', r.alerts.length === 0, `alerts=${r.alerts.length}`);
 
 console.log(fails ? `\n${fails} prueba(s) fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fails ? 1 : 0);
